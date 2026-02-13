@@ -1,0 +1,18 @@
+# Logs and Reports
+*.log
+Optimizer_Log_*.txt
+System_Health_*.txt
+battery-report.html
+
+# Windows System Files
+Desktop.ini
+Thumbs.db
+$RECYCLE.BIN/
+
+# VS Code
+.vscode/
+
+# PowerShell
+*.ps1.bak
+_chk.ps1
+_audit.ps1
