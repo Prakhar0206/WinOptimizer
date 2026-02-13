@@ -1,6 +1,6 @@
 @echo off
 setlocal
-title WinOptimizer v3.2 - Loading...
+title WinOptimizer v3.3 - Loading...
 color 0B
 
 :: ============================================================
