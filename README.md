@@ -2,7 +2,7 @@
   <img src="https://img.shields.io/badge/PowerShell-5.1%2B-blue?logo=powershell&logoColor=white" alt="PowerShell 5.1+">
   <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-0078D6?logo=windows&logoColor=white" alt="Windows 10 | 11">
   <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="MIT License">
-  <img src="https://img.shields.io/badge/Version-3.3-orange" alt="Version 3.3">
+  <img src="https://img.shields.io/badge/Version-3.4-orange" alt="Version 3.4">
 </p>
 
 # 🚀 WinOptimizer
@@ -15,41 +15,55 @@ A comprehensive, all-in-one PowerShell utility to optimize, debloat, and maintai
 
 ## ✨ Features (20 Tools)
 
-### 📊 Diagnostics (Read-Only)
-| # | Tool | What It Does |
-|---|------|-------------|
-| 1 | **System Health Report** | 10-section report: OS, CPU, RAM, disk, GPU, startup programs, services, network, license status. Saved to Desktop. |
-| 2 | **Quick RAM & CPU Check** | Instant snapshot with visual bars, system uptime, and process count. |
-| 3 | **Heavy Process Finder** | Top 15 processes by RAM, browser memory totals, option to kill by PID. |
-| 4 | **Battery Health Report** | Windows `powercfg` battery report with charge capacity and cycle data. |
-| 5 | **Disk & Hardware Health** | S.M.A.R.T. data, drive temperatures, reliability counters, fragmentation analysis. |
+### 📊 Diagnostics & Analysis (Read-Only)
 
-### ⚡ Optimization
-| # | Tool | What It Does |
-|---|------|-------------|
-| 6 | **Startup Optimizer** | Database of 80+ known non-essential programs. Disables bloatware startup entries + related scheduled tasks. |
-| 7 | **RAM & Performance** | Trims idle working sets (EmptyWorkingSet API), disables animations, sets High Performance power plan, disables Game DVR & Cortana. |
-| 8 | **Deep Disk Clean** | 7-step cleanup: temp files, 12 browser caches, Windows Update cache, old logs, thumbnail cache, CleanMgr, SSD TRIM / HDD defrag. |
-| 9 | **Network Repair** | DNS flush, TCP/IP reset (auto-skips VPN/VM adapters), IP renew, TCP tuning, DNS provider config (Google/Cloudflare/Quad9). |
-| 10 | **Service Optimization** | Disables telemetry, maps, retail demo services. Auto-detects SSD/HDD for Superfetch decision. Tunes Defender CPU usage. |
-| 11 | **Privacy Shield** | 15+ registry settings across 8 categories: telemetry, advertising ID, location, Bing search, activity history, cloud clipboard sync. |
-| 12 | **Update Manager** | Check/pause Windows Updates (1-35 days), resume, set active hours, clear stuck update cache. |
+| #   | Tool                          | What It Does                                                                                                       |
+| --- | ----------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| 1   | **Full System Health Report** | 10-section report: OS, CPU, RAM, disk, GPU, startup programs, services, network, license status. Saved to Desktop. |
+| 2   | **Quick RAM & CPU Check**     | Instant snapshot with visual bars, system uptime, and process count.                                               |
+| 3   | **Identify Heavy Processes**  | Top 15 processes by RAM usage. Option to safely kill any process by PID.                                           |
+| 4   | **Battery Health Report**     | Generates Windows `powercfg` battery report with charge capacity and cycle data.                                   |
+| 5   | **Disk & Hardware Health**    | S.M.A.R.T. data, drive temperatures, reliability counters, and fragmentation analysis.                             |
+| 6   | **Storage Space Analyzer**    | Scans 12 key folders with visual size bars. Gives tailored recommendations for low disk space.                     |
 
-### 🔧 Repair & Maintenance
-| # | Tool | What It Does |
-|---|------|-------------|
-| 13 | **Repair Windows** | 5 options: Full DISM+SFC+Cleanup, Quick SFC, DISM only, schedule chkdsk, view recent system errors. |
-| 14 | **Create Restore Point** | Creates a verified system restore point with custom name and shadow copy validation. |
-| 15 | **Clean Restore Points** | Deletes old restore points, keeps the 2 newest. Uses `vssadmin` for reliable deletion. |
-| 16 | **Cleanup Logs** | Deletes optimizer logs, health reports, and battery reports. Age-based (>30 days) or full cleanup. |
+### 🚀 Performance & Tweaks
 
-### 🎯 All-in-One & Extras
-| # | Tool | What It Does |
-|---|------|-------------|
-| 17 | **Run ALL Optimizations** | 8-step pipeline with error resilience: Restore Point → Services → Startup → RAM → Privacy → Disk → Network → Log Cleanup. |
-| 18 | **Software Updater** | Winget integration: check updates, update all/specific, search & install new apps, list installed. Fallback mode when winget is missing. |
-| 19 | **Bloatware Uninstaller** | 2-tier scan: 30+ definite junk (Candy Crush, trial AV, etc.) + 25+ popular apps. 4 removal modes with protected whitelist. |
-| 20 | **Storage Analyzer** | Scans 12 key folders with visual size bars. Recommendations for Downloads, temp/cache, browser data, low disk space. |
+| #   | Tool                           | What It Does                                                                                               |
+| --- | ------------------------------ | ---------------------------------------------------------------------------------------------------------- |
+| 7   | **Smart Startup Optimizer**    | Scans and disables bloatware startup entries using a database of 80+ known non-essential programs.         |
+| 8   | **Optimize RAM & Performance** | Trims idle working sets, disables animations, sets High Performance power plan, disables Game DVR/Cortana. |
+| 9   | **Optimize Windows Services**  | Safely disables telemetry, maps, etc. Auto-detects SSD/HDD for Superfetch. Tunes Defender CPU limits.      |
+| 10  | **Fix Network Issues**         | DNS flush, TCP/IP reset (auto-skips VPNs), IP renew, TCP tuning, and custom DNS (Google/Cloudflare/Quad9). |
+
+### 🛡️ Privacy & Security
+
+| #   | Tool                           | What It Does                                                                                                 |
+| --- | ------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| 11  | **Privacy & Telemetry Shield** | 15+ registry settings across 8 categories: telemetry, advertising ID, location, Bing search, clipboard sync. |
+| 12  | **Windows Update Manager**     | Check/pause Windows Updates (1-35 days), resume, configure active hours, clear stuck update caches.          |
+
+### 🧹 Cleaning & Debloating
+
+| #   | Tool                         | What It Does                                                                                                    |
+| --- | ---------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| 13  | **Deep Disk Clean**          | 7-step cleanup: temp files, 12 browser caches, Windows Update cache, old logs, CleanMgr, SSD TRIM / HDD defrag. |
+| 14  | **Bloatware Uninstaller**    | 2-tier scan (junk + popular apps). 4 removal modes (junk only, all, choose, prompt) to uninstall UWP bloatware. |
+| 15  | **Clean Old Restore Points** | Reclaims disk space by deleting old restore points while keeping the most recent reliable states.               |
+| 16  | **Delete Old Log Files**     | Cleans up optimizer execution logs, health reports, and battery reports older than your set threshold.          |
+
+### 🛠️ Maintenance & Repairs
+
+| #   | Tool                          | What It Does                                                                                         |
+| --- | ----------------------------- | ---------------------------------------------------------------------------------------------------- |
+| 17  | **Software Update (Winget)**  | Check updates, update all/specific apps, search & install. Has a fallback mode if Winget is missing. |
+| 18  | **Repair Windows (SFC+DISM)** | 5 options: Full DISM+SFC+Cleanup, Quick SFC, DISM only, schedule chkdsk, view recent system errors.  |
+| 19  | **Create Restore Point**      | Instantly creates a verified system restore point with a custom name.                                |
+
+### ⚡ Automation
+
+| #   | Tool                      | What It Does                                                                                               |
+| --- | ------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| 20  | **RUN ALL OPTIMIZATIONS** | Master 8-step pipeline: Restore Point → Services → Startup → RAM → Privacy → Disk → Network → Log Cleanup. |
 
 ---
 
@@ -68,11 +82,14 @@ That's it — no dependencies to install.
 ## ⚡ How to Run
 
 ### Method 1: Batch Launcher (Recommended)
+
 Double-click **`Run-Optimizer.bat`**  
 → Automatically requests Admin privileges and bypasses execution policy.
 
 ### Method 2: PowerShell
+
 Right-click **PowerShell** → **Run as Administrator**, then:
+
 ```powershell
 Set-ExecutionPolicy Bypass -Scope Process -Force
 .\WinOptimizer.ps1
@@ -103,15 +120,15 @@ $Config = @{
 
 ## 🔒 Safety Features
 
-| Feature | How It Protects You |
-|---------|-------------------|
-| **Restore Points** | Prompts to create a system restore point before making changes. |
-| **Protected Processes** | 22 critical system processes (csrss, lsass, dwm, explorer, etc.) are never trimmed. |
-| **Protected Startup** | Drivers, security software, and system essentials are whitelisted and never disabled. |
-| **VPN/VM Detection** | Auto-detects 17 VPN/VM adapter patterns and skips destructive network resets. |
-| **SSD/HDD Detection** | 4 fallback detection methods to ensure correct optimization strategy. |
-| **Domain Detection** | Preserves network policies on domain-joined PCs (skips DNS changes). |
-| **User Confirmation** | Destructive operations always prompt Y/N before proceeding. |
+| Feature                 | How It Protects You                                                                   |
+| ----------------------- | ------------------------------------------------------------------------------------- |
+| **Restore Points**      | Prompts to create a system restore point before making changes.                       |
+| **Protected Processes** | 22 critical system processes (csrss, lsass, dwm, explorer, etc.) are never trimmed.   |
+| **Protected Startup**   | Drivers, security software, and system essentials are whitelisted and never disabled. |
+| **VPN/VM Detection**    | Auto-detects 17 VPN/VM adapter patterns and skips destructive network resets.         |
+| **SSD/HDD Detection**   | 4 fallback detection methods to ensure correct optimization strategy.                 |
+| **Domain Detection**    | Preserves network policies on domain-joined PCs (skips DNS changes).                  |
+| **User Confirmation**   | Destructive operations always prompt Y/N before proceeding.                           |
 
 ---
 
@@ -119,7 +136,7 @@ $Config = @{
 
 ```
 WinOptimizer/
-├── WinOptimizer.ps1      # Main script (3,600+ lines, 20 tools)
+├── WinOptimizer.ps1      # Main script (3,900+ lines, 20 tools)
 ├── Run-Optimizer.bat      # One-click launcher with admin elevation
 ├── LICENSE                # MIT License
 ├── .gitignore             # Ignores logs, temp files, IDE config

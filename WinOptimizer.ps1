@@ -44,7 +44,7 @@
       - Configurable thresholds via $Config block at top of script
 
 .NOTES
-    Version:        3.3
+    Version:        3.4
     Author:         Prakhar Aggarwal
     Requires:       Windows 10/11, PowerShell 5.1+, Administrator privileges
     Last Updated:   February 2026
@@ -66,10 +66,10 @@
 # WINOPTIMIZER - Ultimate Windows Optimization
 # All-in-one script for Windows 10/11
 # Author: Prakhar Aggarwal
-# Version: 3.3
+# Version: 3.4
 # ============================================
 
-$scriptVersion = "3.3"
+$scriptVersion = "3.4"
 $scriptDate = "February 2026"
 
 # Visual settings
@@ -90,7 +90,8 @@ try {
 
     $psWindow.BufferSize = $newBuffer
     $psWindow.WindowSize = $newSize
-} catch {
+}
+catch {
     # Fails in some terminals (ISE, VS Code, Windows Terminal sometimes), safe to ignore
 }
 
@@ -118,14 +119,14 @@ $Config = @{
     DefenderMaxCpuPercent = 15
 
     # DNS Providers: primary and secondary for each option
-    DnsProviders = @{
+    DnsProviders          = @{
         Google     = @("8.8.8.8", "8.8.4.4")
         Cloudflare = @("1.1.1.1", "1.0.0.1")
         Quad9      = @("9.9.9.9", "149.112.112.112")
     }
 
     # Processes that should NEVER have their working set trimmed
-    ProtectedProcesses = @(
+    ProtectedProcesses    = @(
         "csrss", "lsass", "smss", "wininit", "services", "svchost",
         "dwm", "explorer", "ShellExperienceHost", "StartMenuExperienceHost",
         "MsMpEng", "MsSense", "NisSrv", "SecurityHealthService",
@@ -134,7 +135,7 @@ $Config = @{
     )
 
     # Network adapter patterns to detect VPN/VM (skip destructive resets)
-    VpnAdapterPatterns = @(
+    VpnAdapterPatterns    = @(
         "*VPN*", "*Virtual*", "*VMware*", "*VirtualBox*", "*Docker*",
         "*Hyper-V*", "*vEthernet*", "*Loopback*", "*WSL*", "*TAP*",
         "*TUN*", "*Cisco*", "*Fortinet*", "*GlobalProtect*",
@@ -158,13 +159,13 @@ function Write-Log {
     switch ($Level) {
         "SUCCESS" { Write-Host "  [OK] $Message" -ForegroundColor Green }
         "WARNING" { Write-Host "  [!!] $Message" -ForegroundColor Yellow }
-        "ERROR"   { Write-Host "  [XX] $Message" -ForegroundColor Red }
-        "STEP"    { Write-Host "  >>> $Message" -ForegroundColor Cyan }
-        "HEADER"  { Write-Host "`n  $Message" -ForegroundColor Cyan }
-        default   { Write-Host "    $Message" -ForegroundColor $Color }
+        "ERROR" { Write-Host "  [XX] $Message" -ForegroundColor Red }
+        "STEP" { Write-Host "  >>> $Message" -ForegroundColor Cyan }
+        "HEADER" { Write-Host "`n  $Message" -ForegroundColor Cyan }
+        default { Write-Host "    $Message" -ForegroundColor $Color }
     }
     
-    # Only write to file if enabled (Option 17)
+    # Only write to file if enabled (Option 20)
     if ($script:LoggingEnabled) {
         $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
         $logEntry = "[$timestamp] [$Level] $Message"
@@ -214,12 +215,14 @@ function New-SafeRestorePoint {
             $latestRP = Get-ComputerRestorePoint | Select-Object -Last 1
             Write-Log "Restore point created & verified (ID: $($latestRP.SequenceNumber))" "SUCCESS"
             return $true
-        } else {
+        }
+        else {
             Write-Log "Restore point command succeeded but could not verify creation" "WARNING"
             Write-Host "    Tip: Open Control Panel > System > System Protection to check manually" -ForegroundColor Gray
             return $true
         }
-    } catch {
+    }
+    catch {
         Write-Log "Could not create restore point: $($_.Exception.Message)" "WARNING"
         Write-Host "    Possible causes:" -ForegroundColor Gray
         Write-Host "      - System Restore is disabled (Control Panel > System > System Protection)" -ForegroundColor Gray
@@ -258,7 +261,8 @@ function Show-Menu {
         }
         $cpuLoad = (Get-CimInstance Win32_Processor -ErrorAction SilentlyContinue).LoadPercentage
         if (-not $cpuLoad) { $cpuLoad = 0 }
-    } catch {}
+    }
+    catch {}
     
     $title = "ULTIMATE LAPTOP OPTIMIZER v$scriptVersion"
     $sub = "Windows 11  |  $scriptDate"
@@ -273,8 +277,8 @@ function Show-Menu {
     $ramFill = [math]::Floor($ramPct / 10); $cpuFill = [math]::Floor($cpuLoad / 10)
     $ramBar = $block.ToString() * $ramFill + $shade.ToString() * (10 - $ramFill)
     $cpuBar = $block.ToString() * $cpuFill + $shade.ToString() * (10 - $cpuFill)
-    $ramClr = if ($ramPct -lt 60) {"Green"} elseif ($ramPct -lt 80) {"Yellow"} else {"Red"}
-    $cpuClr = if ($cpuLoad -lt 40) {"Green"} elseif ($cpuLoad -lt 75) {"Yellow"} else {"Red"}
+    $ramClr = if ($ramPct -lt 60) { "Green" } elseif ($ramPct -lt 80) { "Yellow" } else { "Red" }
+    $cpuClr = if ($cpuLoad -lt 40) { "Green" } elseif ($cpuLoad -lt 75) { "Yellow" } else { "Red" }
     
     Write-Host -NoNewline "     RAM " -ForegroundColor Gray
     Write-Host -NoNewline "[$ramBar]" -ForegroundColor $ramClr
@@ -284,33 +288,28 @@ function Show-Menu {
     Write-Host " $($cpuLoad.ToString().PadLeft(3))%" -ForegroundColor $cpuClr
     Write-Host ""
     
-    Write-Host "   --- DIAGNOSTICS ---------------------------------" -ForegroundColor DarkCyan
-    Write-Host "    1.  Full System Health Report" -ForegroundColor White
-    Write-Host "    2.  Quick RAM & CPU Check" -ForegroundColor White
-    Write-Host "    3.  Identify Heavy Processes" -ForegroundColor White
-    Write-Host "    4.  Battery Health Report" -ForegroundColor White
-    Write-Host "    5.  Disk & Hardware Health" -ForegroundColor White
+    Write-Host "   --- DIAGNOSTICS & ANALYSIS ----------------------" -ForegroundColor DarkCyan
+    Write-Host "    1.  Full System Health Report    4.  Battery Health Report" -ForegroundColor White
+    Write-Host "    2.  Quick RAM & CPU Check        5.  Disk & Hardware Health" -ForegroundColor White
+    Write-Host "    3.  Identify Heavy Processes     6.  Storage Space Analyzer" -ForegroundColor White
     Write-Host ""
-    Write-Host "   --- OPTIMIZATION --------------------------------" -ForegroundColor DarkCyan
-    Write-Host "    6.  Optimize Startup Programs" -ForegroundColor White
-    Write-Host "    7.  Optimize RAM & Performance" -ForegroundColor White
-    Write-Host "    8.  Deep Disk Clean & Free Space" -ForegroundColor White
-    Write-Host "    9.  Fix Network Issues" -ForegroundColor White
-    Write-Host "   10.  Optimize Windows Services" -ForegroundColor White
-    Write-Host "   11.  Privacy & Telemetry Shield" -ForegroundColor White
-    Write-Host "   12.  Windows Update Manager" -ForegroundColor White
+    Write-Host "   --- PERFORMANCE & TWEAKS ------------------------" -ForegroundColor DarkCyan
+    Write-Host "    7.  Smart Startup Optimizer      9.  Optimize Windows Services" -ForegroundColor White
+    Write-Host "    8.  Optimize RAM & Performance  10.  Fix Network Issues" -ForegroundColor White
     Write-Host ""
-    Write-Host "   --- REPAIR & MAINTENANCE ------------------------" -ForegroundColor DarkCyan
-    Write-Host "   13.  Repair Windows (SFC + DISM)" -ForegroundColor White
-    Write-Host "   14.  Create System Restore Point" -ForegroundColor White
-    Write-Host "   15.  Clean Old Restore Points (Keep Latest)" -ForegroundColor White
-    Write-Host "   16.  Cleanup Script Logs & Reports" -ForegroundColor White
+    Write-Host "   --- PRIVACY & SECURITY --------------------------" -ForegroundColor DarkCyan
+    Write-Host "   11.  Privacy & Telemetry Shield  12.  Windows Update Manager" -ForegroundColor White
     Write-Host ""
-    Write-Host "   --- ALL-IN-ONE ----------------------------------" -ForegroundColor DarkCyan
-    Write-Host "   17.  >>> Run ALL Optimizations (Safe Mode) <<<" -ForegroundColor Green
-    Write-Host "   18.  Software Update Manager (Winget)" -ForegroundColor White
-    Write-Host "   19.  Bloatware Uninstaller (UWP Apps)" -ForegroundColor White
-    Write-Host "   20.  Storage Space Analyzer" -ForegroundColor White
+    Write-Host "   --- CLEANING & DEBLOATING -----------------------" -ForegroundColor DarkCyan
+    Write-Host "   13.  Deep Disk Clean             15.  Clean Old Restore Points" -ForegroundColor White
+    Write-Host "   14.  Bloatware Uninstaller       16.  Delete Old Log Files" -ForegroundColor White
+    Write-Host ""
+    Write-Host "   --- MAINTENANCE & REPAIRS -----------------------" -ForegroundColor DarkCyan
+    Write-Host "   17.  Software Update (Winget)    19.  Create Restore Point" -ForegroundColor White
+    Write-Host "   18.  Repair Windows (SFC+DISM)" -ForegroundColor White
+    Write-Host ""
+    Write-Host "   --- AUTOMATION ----------------------------------" -ForegroundColor DarkCyan
+    Write-Host "   20.  >>> RUN ALL OPTIMIZATIONS (Automated) <<<" -ForegroundColor Green
     Write-Host ""
     Write-Host "    0.  Exit" -ForegroundColor DarkGray
     Write-Host "    H.  Help (What does each option do?)" -ForegroundColor DarkGray
@@ -356,10 +355,10 @@ Domain Joined: $($computerInfo.CsPartOfDomain)
     # RAM Status
     Write-Log "[2/10] Memory Status..." "STEP"
     $os = Get-CimInstance Win32_OperatingSystem
-    $totalRAM = [math]::Round($os.TotalVisibleMemorySize/1MB, 2)
-    $freeRAM = [math]::Round($os.FreePhysicalMemory/1MB, 2)
+    $totalRAM = [math]::Round($os.TotalVisibleMemorySize / 1MB, 2)
+    $freeRAM = [math]::Round($os.FreePhysicalMemory / 1MB, 2)
     $usedRAM = $totalRAM - $freeRAM
-    $ramPercent = [math]::Round(($usedRAM/$totalRAM)*100, 2)
+    $ramPercent = [math]::Round(($usedRAM / $totalRAM) * 100, 2)
     
     # Memory slot info
     $memSlots = Get-CimInstance Win32_PhysicalMemory
@@ -386,7 +385,7 @@ $slotInfo
     Write-Log "[3/10] Top RAM Consumers..." "STEP"
     $output = "=== TOP 15 RAM USERS ===`n"
     Get-Process | Sort-Object WS -Descending | Select-Object -First 15 | ForEach-Object {
-        $ramMB = [math]::Round($_.WS/1MB, 2)
+        $ramMB = [math]::Round($_.WS / 1MB, 2)
         $cpuTime = [math]::Round($_.CPU, 2)
         $output += "  $($_.ProcessName): $ramMB MB | CPU Time: $cpuTime s | PID: $($_.Id)`n"
     }
@@ -402,7 +401,8 @@ $slotInfo
         if ($thermalZone) {
             $cpuTemp = [math]::Round(($thermalZone.CurrentTemperature - 2732) / 10, 1)
         }
-    } catch {}
+    }
+    catch {}
     
     $output = @"
 === CPU STATUS ===
@@ -422,10 +422,10 @@ Status: $(if($cpu.LoadPercentage -lt 30){"Idle"}elseif($cpu.LoadPercentage -lt 6
     $volumes = Get-Volume | Where-Object { $_.DriveLetter -and $_.Size -gt 0 }
     $output = "=== DISK STATUS ===`n"
     foreach ($vol in $volumes) {
-        $percentFree = [math]::Round(($vol.SizeRemaining/$vol.Size)*100, 2)
+        $percentFree = [math]::Round(($vol.SizeRemaining / $vol.Size) * 100, 2)
         $percentUsed = 100 - $percentFree
-        $bar = "[" + ($block.ToString() * [math]::Floor($percentUsed/5)) + ($shade.ToString() * [math]::Ceiling($percentFree/5)) + "]"
-        $status = if($percentFree -lt 10){"CRITICAL"}elseif($percentFree -lt 20){"Low"}else{"OK"}
+        $bar = "[" + ($block.ToString() * [math]::Floor($percentUsed / 5)) + ($shade.ToString() * [math]::Ceiling($percentFree / 5)) + "]"
+        $status = if ($percentFree -lt 10) { "CRITICAL" }elseif ($percentFree -lt 20) { "Low" }else { "OK" }
         $output += "  Drive $($vol.DriveLetter): $bar $percentUsed% used | $([math]::Round($vol.SizeRemaining/1GB, 2)) GB free / $([math]::Round($vol.Size/1GB, 2)) GB total | $status`n"
     }
     Write-Host $output
@@ -436,7 +436,7 @@ Status: $(if($cpu.LoadPercentage -lt 30){"Idle"}elseif($cpu.LoadPercentage -lt 6
     $gpus = Get-CimInstance Win32_VideoController
     $output = "=== GPU STATUS ===`n"
     foreach ($gpu in $gpus) {
-        $vram = [math]::Round($gpu.AdapterRAM/1GB, 2)
+        $vram = [math]::Round($gpu.AdapterRAM / 1GB, 2)
         $vramStr = if ($vram -eq 0) { "System Shared" } else { "$vram GB" }
         $output += "  $($gpu.Name) | VRAM: $vramStr | Driver: $($gpu.DriverVersion) | Status: $($gpu.Status)`n"
     }
@@ -456,12 +456,12 @@ Status: $(if($cpu.LoadPercentage -lt 30){"Idle"}elseif($cpu.LoadPercentage -lt 6
     # Services
     Write-Log "[8/10] Critical Services..." "STEP"
     $criticalServices = @(
-        @{Name="SysMain"; Description="Superfetch"},
-        @{Name="WSearch"; Description="Windows Search"},
-        @{Name="DiagTrack"; Description="Telemetry"},
-        @{Name="WinDefend"; Description="Windows Defender"},
-        @{Name="Spooler"; Description="Print Spooler"},
-        @{Name="wuauserv"; Description="Windows Update"}
+        @{Name = "SysMain"; Description = "Superfetch" },
+        @{Name = "WSearch"; Description = "Windows Search" },
+        @{Name = "DiagTrack"; Description = "Telemetry" },
+        @{Name = "WinDefend"; Description = "Windows Defender" },
+        @{Name = "Spooler"; Description = "Print Spooler" },
+        @{Name = "wuauserv"; Description = "Windows Update" }
     )
     
     $output = "=== SERVICES STATUS ===`n"
@@ -492,7 +492,8 @@ Status: $(if($cpu.LoadPercentage -lt 30){"Idle"}elseif($cpu.LoadPercentage -lt 6
         $minLatency = ($ping | Measure-Object -Property $latencyProp -Minimum).Minimum
         $maxLatency = ($ping | Measure-Object -Property $latencyProp -Maximum).Maximum
         $output += "  Internet: Connected | Avg: ${avgLatency}ms | Min: ${minLatency}ms | Max: ${maxLatency}ms`n"
-    } catch {
+    }
+    catch {
         $output += "  Internet: DISCONNECTED or BLOCKED`n"
     }
     Write-Host $output
@@ -533,20 +534,20 @@ function Get-QuickStatus {
     Write-Host "========================================`n" -ForegroundColor Cyan
     
     $os = Get-CimInstance Win32_OperatingSystem
-    $totalRAM = [math]::Round($os.TotalVisibleMemorySize/1MB, 2)
-    $freeRAM = [math]::Round($os.FreePhysicalMemory/1MB, 2)
+    $totalRAM = [math]::Round($os.TotalVisibleMemorySize / 1MB, 2)
+    $freeRAM = [math]::Round($os.FreePhysicalMemory / 1MB, 2)
     $usedRAM = $totalRAM - $freeRAM
-    $ramPercent = [math]::Round(($usedRAM/$totalRAM)*100, 2)
+    $ramPercent = [math]::Round(($usedRAM / $totalRAM) * 100, 2)
     
     $cpu = Get-CimInstance Win32_Processor
     
     # Visual bars
-    $ramBar = "[" + ($block.ToString() * [math]::Floor($ramPercent/5)) + ($shade.ToString() * [math]::Ceiling((100-$ramPercent)/5)) + "]"
+    $ramBar = "[" + ($block.ToString() * [math]::Floor($ramPercent / 5)) + ($shade.ToString() * [math]::Ceiling((100 - $ramPercent) / 5)) + "]"
     $cpuLoad = if ($cpu.LoadPercentage) { $cpu.LoadPercentage } else { 0 }
-    $cpuBar = "[" + ($block.ToString() * [math]::Floor($cpuLoad/5)) + ($shade.ToString() * [math]::Ceiling((100-$cpuLoad)/5)) + "]"
+    $cpuBar = "[" + ($block.ToString() * [math]::Floor($cpuLoad / 5)) + ($shade.ToString() * [math]::Ceiling((100 - $cpuLoad) / 5)) + "]"
     
-    $ramColor = if($ramPercent -lt 60){"Green"}elseif($ramPercent -lt 80){"Yellow"}else{"Red"}
-    $cpuColor = if($cpuLoad -lt 40){"Green"}elseif($cpuLoad -lt 75){"Yellow"}else{"Red"}
+    $ramColor = if ($ramPercent -lt 60) { "Green" }elseif ($ramPercent -lt 80) { "Yellow" }else { "Red" }
+    $cpuColor = if ($cpuLoad -lt 40) { "Green" }elseif ($cpuLoad -lt 75) { "Yellow" }else { "Red" }
     
     Write-Host "RAM: $ramBar $ramPercent% ($usedRAM / $totalRAM GB)" -ForegroundColor $ramColor
     Write-Host "CPU: $cpuBar $cpuLoad%" -ForegroundColor $cpuColor
@@ -561,7 +562,7 @@ function Get-QuickStatus {
     
     # Process count
     $procCount = (Get-Process).Count
-    Write-Host "Running Processes: $procCount" -ForegroundColor $(if($procCount -lt 150){"Green"}elseif($procCount -lt 250){"Yellow"}else{"Red"})
+    Write-Host "Running Processes: $procCount" -ForegroundColor $(if ($procCount -lt 150) { "Green" }elseif ($procCount -lt 250) { "Yellow" }else { "Red" })
     
     Wait-KeyPress
 }
@@ -581,9 +582,9 @@ function Get-HeavyProcesses {
     
     $topProcs = Get-Process | Sort-Object WS -Descending | Select-Object -First 15
     foreach ($proc in $topProcs) {
-        $ramMB = [math]::Round($proc.WS/1MB, 2)
+        $ramMB = [math]::Round($proc.WS / 1MB, 2)
         $cpuSec = [math]::Round($proc.CPU, 2)
-        $color = if($ramMB -gt 500){"Red"}elseif($ramMB -gt 200){"Yellow"}else{"White"}
+        $color = if ($ramMB -gt 500) { "Red" }elseif ($ramMB -gt 200) { "Yellow" }else { "White" }
         Write-Host ("  {0,-30} {1,10} {2,10} {3,8}" -f $proc.ProcessName, $ramMB, $cpuSec, $proc.Id) -ForegroundColor $color
     }
     
@@ -625,7 +626,8 @@ function Get-HeavyProcesses {
                 Stop-Process -Id $killPID -Force -ErrorAction Stop
                 Write-Log "Killed process: $($procToKill.ProcessName) (PID: $killPID)" "SUCCESS"
             }
-        } catch {
+        }
+        catch {
             Write-Log "Could not kill PID $killPID : $($_.Exception.Message)" "ERROR"
         }
     }
@@ -654,7 +656,7 @@ function Get-BatteryHealth {
             $battery = Get-CimInstance Win32_Battery -ErrorAction SilentlyContinue
             if ($battery) {
                 Write-Host "`n  Battery Status: $($battery.Status)" -ForegroundColor White
-                Write-Host "  Charge Remaining: $($battery.EstimatedChargeRemaining)%" -ForegroundColor $(if($battery.EstimatedChargeRemaining -gt 50){"Green"}elseif($battery.EstimatedChargeRemaining -gt 20){"Yellow"}else{"Red"})
+                Write-Host "  Charge Remaining: $($battery.EstimatedChargeRemaining)%" -ForegroundColor $(if ($battery.EstimatedChargeRemaining -gt 50) { "Green" }elseif ($battery.EstimatedChargeRemaining -gt 20) { "Yellow" }else { "Red" })
                 
                 $statusText = switch ($battery.BatteryStatus) {
                     1 { "Discharging" }
@@ -675,7 +677,8 @@ function Get-BatteryHealth {
                     $mins = $battery.EstimatedRunTime % 60
                     Write-Host "  Estimated Runtime: ${hours}h ${mins}m" -ForegroundColor White
                 }
-            } else {
+            }
+            else {
                 Write-Host "`n  No battery detected (Desktop PC?)" -ForegroundColor Gray
             }
             
@@ -684,7 +687,8 @@ function Get-BatteryHealth {
                 Start-Process $reportPath
             }
         }
-    } catch {
+    }
+    catch {
         Write-Log "Battery report generation failed: $($_.Exception.Message)" "ERROR"
     }
     
@@ -713,15 +717,17 @@ function Get-DiskHealth {
         $thermal = Get-CimInstance MSAcpi_ThermalZoneTemperature -Namespace "root/wmi" -ErrorAction Stop
         foreach ($zone in $thermal) {
             $cpuTemp = [math]::Round(($zone.CurrentTemperature - 2732) / 10, 1)
-            $tempColor = if ($cpuTemp -gt 85) {"Red"} elseif ($cpuTemp -gt 70) {"Yellow"} else {"Green"}
+            $tempColor = if ($cpuTemp -gt 85) { "Red" } elseif ($cpuTemp -gt 70) { "Yellow" } else { "Green" }
             Write-Host "  CPU Temperature: ${cpuTemp} C" -ForegroundColor $tempColor
             if ($cpuTemp -gt 85) {
                 Write-Host "    WARNING: CPU is running hot! Check cooling/ventilation." -ForegroundColor Red
-            } elseif ($cpuTemp -gt 70) {
+            }
+            elseif ($cpuTemp -gt 70) {
                 Write-Host "    Note: Elevated temperature. Ensure vents are not blocked." -ForegroundColor Yellow
             }
         }
-    } catch {
+    }
+    catch {
         Write-Host "  CPU Temperature: Sensor not accessible (common on some hardware)" -ForegroundColor DarkGray
     }
     Write-Host ""
@@ -748,7 +754,8 @@ function Get-DiskHealth {
             }
             Write-Host ""
         }
-    } catch {
+    }
+    catch {
         Write-Host "  Could not retrieve physical disk info (common on some VMs/RAID)" -ForegroundColor DarkGray
     }
     
@@ -761,11 +768,11 @@ function Get-DiskHealth {
                 Write-Host "  Reliability Counters (Device $($rel.DeviceId)):" -ForegroundColor Yellow
                 
                 # Check each value for null
-                $rErr = if ($rel.ReadErrorsTotal -ne $null) { $rel.ReadErrorsTotal } else { "N/A" }
-                $wErr = if ($rel.WriteErrorsTotal -ne $null) { $rel.WriteErrorsTotal } else { "N/A" }
-                $temp = if ($rel.Temperature -ne $null) { $rel.Temperature } else { "N/A" }
-                $wear = if ($rel.Wear -ne $null) { $rel.Wear } else { "N/A" }
-                $hours = if ($rel.PowerOnHours -ne $null) { $rel.PowerOnHours } else { "N/A" }
+                $rErr = if ($null -ne $rel.ReadErrorsTotal) { $rel.ReadErrorsTotal } else { "N/A" }
+                $wErr = if ($null -ne $rel.WriteErrorsTotal) { $rel.WriteErrorsTotal } else { "N/A" }
+                $temp = if ($null -ne $rel.Temperature) { $rel.Temperature } else { "N/A" }
+                $wear = if ($null -ne $rel.Wear) { $rel.Wear } else { "N/A" }
+                $hours = if ($null -ne $rel.PowerOnHours) { $rel.PowerOnHours } else { "N/A" }
 
                 # Determine colors
                 $rColor = if ($rErr -eq 0) { "Green" } elseif ($rErr -eq "N/A") { "Gray" } else { "Red" }
@@ -778,7 +785,7 @@ function Get-DiskHealth {
 
                 $wearColor = "Gray"
                 if ($wear -ne "N/A") {
-                     $wearColor = if ($wear -lt 20) { "Green" } elseif ($wear -lt 50) { "Yellow" } else { "Red" }
+                    $wearColor = if ($wear -lt 20) { "Green" } elseif ($wear -lt 50) { "Yellow" } else { "Red" }
                 }
 
                 Write-Host "    Read Errors: $rErr" -ForegroundColor $rColor
@@ -788,7 +795,8 @@ function Get-DiskHealth {
                 Write-Host "    Power On Hours: $hours" -ForegroundColor Gray
             }
         }
-    } catch {
+    }
+    catch {
         Write-Host "  Detailed reliability data not available" -ForegroundColor Gray
     }
     
@@ -799,14 +807,134 @@ function Get-DiskHealth {
         try {
             Optimize-Volume -DriveLetter $vol.DriveLetter -Analyze -ErrorAction SilentlyContinue | Out-Null
             Write-Host "`n  Drive $($vol.DriveLetter): File System: $($vol.FileSystem)" -ForegroundColor White
-        } catch {}
+        }
+        catch {}
     }
     
     Wait-KeyPress
 }
 
 # ============================================
-# 6. SMART STARTUP OPTIMIZER
+# 6. STORAGE SPACE ANALYZER
+# ============================================
+function Get-StorageAnalysis {
+    Write-Host "`n========================================" -ForegroundColor Cyan
+    Write-Host "STORAGE SPACE ANALYZER" -ForegroundColor Cyan
+    Write-Host "========================================`n" -ForegroundColor Cyan
+    
+    # Drive overview
+    Write-Log "Analyzing disk space usage..." "STEP"
+    $volume = Get-Volume -DriveLetter C -ErrorAction SilentlyContinue
+    if ($volume) {
+        $totalGB = [math]::Round($volume.Size / 1GB, 1)
+        $usedGB = [math]::Round(($volume.Size - $volume.SizeRemaining) / 1GB, 1)
+        $freeGB = [math]::Round($volume.SizeRemaining / 1GB, 1)
+        $usedPct = [math]::Round(($usedGB / $totalGB) * 100)
+        
+        $barFill = [math]::Floor($usedPct / 5)
+        $bar = $block.ToString() * $barFill + $shade.ToString() * (20 - $barFill)
+        $barClr = if ($usedPct -lt 70) { "Green" } elseif ($usedPct -lt 85) { "Yellow" } else { "Red" }
+        
+        Write-Host "  Drive C: [$bar] $usedPct% used" -ForegroundColor $barClr
+        Write-Host "  Total: $totalGB GB  |  Used: $usedGB GB  |  Free: $freeGB GB" -ForegroundColor Gray
+        Write-Host ""
+    }
+    
+    # Scan key folders
+    Write-Host "  Scanning folders (this may take 1-2 minutes)...`n" -ForegroundColor Gray
+    
+    $foldersToScan = @(
+        @{Path = "$env:USERPROFILE\Downloads"; Label = "Downloads" },
+        @{Path = "$env:USERPROFILE\Documents"; Label = "Documents" },
+        @{Path = "$env:USERPROFILE\Videos"; Label = "Videos" },
+        @{Path = "$env:USERPROFILE\Pictures"; Label = "Pictures" },
+        @{Path = "$env:USERPROFILE\Desktop"; Label = "Desktop" },
+        @{Path = "$env:USERPROFILE\Music"; Label = "Music" },
+        @{Path = "$env:LOCALAPPDATA\Temp"; Label = "Temp Files" },
+        @{Path = "$env:WINDIR\Temp"; Label = "Windows Temp" },
+        @{Path = "$env:WINDIR\SoftwareDistribution"; Label = "Windows Update Cache" },
+        @{Path = "$env:LOCALAPPDATA\Microsoft\Windows\Explorer"; Label = "Thumbnail Cache" },
+        @{Path = "$env:LOCALAPPDATA\Google\Chrome\User Data"; Label = "Chrome Data" },
+        @{Path = "$env:LOCALAPPDATA\Microsoft\Edge\User Data"; Label = "Edge Data" }
+    )
+    
+    $results = @()
+    foreach ($folder in $foldersToScan) {
+        if (Test-Path $folder.Path) {
+            try {
+                $size = (Get-ChildItem -Path $folder.Path -Recurse -File -ErrorAction SilentlyContinue |
+                    Measure-Object -Property Length -Sum -ErrorAction SilentlyContinue).Sum
+                if (-not $size) { $size = 0 }
+                $results += [PSCustomObject]@{
+                    Label  = $folder.Label
+                    Path   = $folder.Path
+                    SizeGB = [math]::Round($size / 1GB, 2)
+                    SizeMB = [math]::Round($size / 1MB, 0)
+                }
+            }
+            catch {}
+        }
+    }
+    
+    # Sort by size and display with visual bars
+    $results = $results | Sort-Object SizeGB -Descending
+    $maxSize = ($results | Select-Object -First 1).SizeGB
+    if (-not $maxSize -or $maxSize -eq 0) { $maxSize = 1 }
+    
+    Write-Host ("  {0,-25} {1,10}  {2}" -f "FOLDER", "SIZE", "") -ForegroundColor DarkCyan
+    Write-Host "  $("-" * 55)" -ForegroundColor DarkGray
+    
+    foreach ($r in $results) {
+        if ($r.SizeMB -lt 1) { continue }  # Skip empty folders
+        
+        $barLen = [math]::Max(1, [math]::Floor(($r.SizeGB / $maxSize) * 20))
+        $sizeBar = $block.ToString() * $barLen
+        
+        $sizeStr = if ($r.SizeGB -ge 1) { "$($r.SizeGB) GB" } else { "$($r.SizeMB) MB" }
+        $color = if ($r.SizeGB -gt 10) { "Red" } elseif ($r.SizeGB -gt 2) { "Yellow" } else { "White" }
+        
+        Write-Host ("  {0,-25} {1,10}  " -f $r.Label, $sizeStr) -NoNewline -ForegroundColor $color
+        Write-Host $sizeBar -ForegroundColor $color
+    }
+    
+    # Recommendations
+    Write-Host "`n  Recommendations:" -ForegroundColor Yellow
+    
+    $downloads = $results | Where-Object { $_.Label -eq "Downloads" }
+    if ($downloads -and $downloads.SizeGB -gt 2) {
+        Write-Host "    - Downloads folder is $($downloads.SizeGB) GB. Review and delete old files." -ForegroundColor White
+    }
+    
+    $tempTotal = ($results | Where-Object { $_.Label -like "*Temp*" -or $_.Label -like "*Cache*" } | Measure-Object -Property SizeMB -Sum).Sum
+    if ($tempTotal -gt 500) {
+        $tempGB = [math]::Round($tempTotal / 1024, 1)
+        Write-Host "    - Temp/cache files total ~$tempGB GB. Run Deep Disk Clean (Option 13)." -ForegroundColor White
+    }
+    
+    $videos = $results | Where-Object { $_.Label -eq "Videos" }
+    if ($videos -and $videos.SizeGB -gt 10) {
+        Write-Host "    - Videos folder is $($videos.SizeGB) GB. Move to external drive?" -ForegroundColor White
+    }
+    
+    $browserData = ($results | Where-Object { $_.Label -like "*Data" } | Measure-Object -Property SizeMB -Sum).Sum
+    if ($browserData -gt 1000) {
+        Write-Host "    - Browser data is $([math]::Round($browserData/1024, 1)) GB. Clear caches via Option 13." -ForegroundColor White
+    }
+    
+    if ($volume -and $null -ne $freeGB) {
+        if ($freeGB -lt 20) {
+            Write-Host "    - LOW DISK SPACE! Only $freeGB GB free. Take action soon." -ForegroundColor Red
+        }
+        else {
+            Write-Host "    - Disk space looks healthy." -ForegroundColor Green
+        }
+    }
+    
+    Wait-KeyPress
+}
+
+# ============================================
+# 7. SMART STARTUP OPTIMIZER
 # ============================================
 function Optimize-Startup {
     Write-Host "`n========================================" -ForegroundColor Cyan
@@ -819,7 +947,7 @@ function Optimize-Startup {
         # Windows Security & Antivirus
         "SecurityHealth*", "Windows Defender*", "WinDefend*", "WindowsSecurity*",
         "McAfee*", "mcpltui*", "McUICnt*",
-        "Norton*", "NortonLifeLock*", "NS*",
+        "Norton*", "NortonLifeLock*",
         "Avast*", "AvastUI*", "aswRunDll*",
         "AVG*", "AVGUI*",
         "Kaspersky*", "KL*", "avp*",
@@ -867,206 +995,209 @@ function Optimize-Startup {
     # Organized by category for easy maintenance
     $knownNonEssential = @(
         # ─── Communication ───
-        @{Pattern="Discord";                    Desc="Discord";                    Category="Communication"},
-        @{Pattern="DiscordUpdate*";             Desc="Discord Updater";            Category="Updater"},
-        @{Pattern="Teams*";                     Desc="Microsoft Teams";            Category="Communication"},
-        @{Pattern="com.squirrel.Teams*";        Desc="Microsoft Teams";            Category="Communication"},
-        @{Pattern="Slack*";                     Desc="Slack";                      Category="Communication"},
-        @{Pattern="Skype*";                     Desc="Skype";                      Category="Communication"},
-        @{Pattern="Zoom*";                      Desc="Zoom";                       Category="Communication"},
-        @{Pattern="Telegram*";                  Desc="Telegram Desktop";           Category="Communication"},
-        @{Pattern="Signal*";                    Desc="Signal Messenger";           Category="Communication"},
-        @{Pattern="WhatsApp*";                  Desc="WhatsApp Desktop";           Category="Communication"},
-        @{Pattern="Viber*";                     Desc="Viber";                      Category="Communication"},
-        @{Pattern="Webex*";                     Desc="Cisco Webex";               Category="Communication"},
-        @{Pattern="RingCentral*";               Desc="RingCentral";               Category="Communication"},
-        @{Pattern="GoTo*";                      Desc="GoTo Meeting";              Category="Communication"},
-        @{Pattern="Franz*";                     Desc="Franz Messenger";            Category="Communication"},
-        @{Pattern="Rambox*";                    Desc="Rambox";                     Category="Communication"},
+        @{Pattern = "Discord"; Desc = "Discord"; Category = "Communication" },
+        @{Pattern = "DiscordUpdate*"; Desc = "Discord Updater"; Category = "Updater" },
+        @{Pattern = "Teams*"; Desc = "Microsoft Teams"; Category = "Communication" },
+        @{Pattern = "com.squirrel.Teams*"; Desc = "Microsoft Teams"; Category = "Communication" },
+        @{Pattern = "Slack*"; Desc = "Slack"; Category = "Communication" },
+        @{Pattern = "Skype*"; Desc = "Skype"; Category = "Communication" },
+        @{Pattern = "Zoom*"; Desc = "Zoom"; Category = "Communication" },
+        @{Pattern = "Telegram*"; Desc = "Telegram Desktop"; Category = "Communication" },
+        @{Pattern = "Signal*"; Desc = "Signal Messenger"; Category = "Communication" },
+        @{Pattern = "WhatsApp*"; Desc = "WhatsApp Desktop"; Category = "Communication" },
+        @{Pattern = "Viber*"; Desc = "Viber"; Category = "Communication" },
+        @{Pattern = "Webex*"; Desc = "Cisco Webex"; Category = "Communication" },
+        @{Pattern = "RingCentral*"; Desc = "RingCentral"; Category = "Communication" },
+        @{Pattern = "GoTo*"; Desc = "GoTo Meeting"; Category = "Communication" },
+        @{Pattern = "Franz*"; Desc = "Franz Messenger"; Category = "Communication" },
+        @{Pattern = "Rambox*"; Desc = "Rambox"; Category = "Communication" },
 
         # ─── Gaming ───
-        @{Pattern="Steam*";                     Desc="Steam Client";               Category="Gaming"},
-        @{Pattern="EpicGames*";                 Desc="Epic Games Launcher";        Category="Gaming"},
-        @{Pattern="EpicWebHelper*";             Desc="Epic Web Helper";            Category="Gaming"},
-        @{Pattern="Origin*";                    Desc="EA Origin / EA App";         Category="Gaming"},
-        @{Pattern="EADesktop*";                 Desc="EA Desktop App";             Category="Gaming"},
-        @{Pattern="EABackgroundService*";       Desc="EA Background Service";      Category="Gaming"},
-        @{Pattern="GOGGalaxy*";                 Desc="GOG Galaxy";                 Category="Gaming"},
-        @{Pattern="Ubisoft*";                   Desc="Ubisoft Connect";            Category="Gaming"},
-        @{Pattern="RiotVanguard*";              Desc="Riot Vanguard Anti-Cheat";   Category="Gaming"},
-        @{Pattern="Riot*Client*";               Desc="Riot Client";                Category="Gaming"},
-        @{Pattern="Overwolf*";                  Desc="Overwolf Overlay";           Category="Gaming"},
-        @{Pattern="Battle.net*";                Desc="Blizzard Battle.net";        Category="Gaming"},
-        @{Pattern="Blizzard*";                  Desc="Blizzard App";               Category="Gaming"},
-        @{Pattern="Bethesda*";                  Desc="Bethesda Launcher";          Category="Gaming"},
-        @{Pattern="Rockstar*";                  Desc="Rockstar Games Launcher";    Category="Gaming"},
-        @{Pattern="AmazonGames*";               Desc="Amazon Games";               Category="Gaming"},
-        @{Pattern="Playnite*";                  Desc="Playnite Game Launcher";     Category="Gaming"},
-        @{Pattern="GameBar*";                   Desc="Xbox Game Bar";              Category="Gaming"},
+        @{Pattern = "Steam*"; Desc = "Steam Client"; Category = "Gaming" },
+        @{Pattern = "EpicGames*"; Desc = "Epic Games Launcher"; Category = "Gaming" },
+        @{Pattern = "EpicWebHelper*"; Desc = "Epic Web Helper"; Category = "Gaming" },
+        @{Pattern = "Origin*"; Desc = "EA Origin / EA App"; Category = "Gaming" },
+        @{Pattern = "EADesktop*"; Desc = "EA Desktop App"; Category = "Gaming" },
+        @{Pattern = "EABackgroundService*"; Desc = "EA Background Service"; Category = "Gaming" },
+        @{Pattern = "GOGGalaxy*"; Desc = "GOG Galaxy"; Category = "Gaming" },
+        @{Pattern = "Ubisoft*"; Desc = "Ubisoft Connect"; Category = "Gaming" },
+        @{Pattern = "RiotVanguard*"; Desc = "Riot Vanguard Anti-Cheat"; Category = "Gaming" },
+        @{Pattern = "Riot*Client*"; Desc = "Riot Client"; Category = "Gaming" },
+        @{Pattern = "Overwolf*"; Desc = "Overwolf Overlay"; Category = "Gaming" },
+        @{Pattern = "Battle.net*"; Desc = "Blizzard Battle.net"; Category = "Gaming" },
+        @{Pattern = "Blizzard*"; Desc = "Blizzard App"; Category = "Gaming" },
+        @{Pattern = "Bethesda*"; Desc = "Bethesda Launcher"; Category = "Gaming" },
+        @{Pattern = "Rockstar*"; Desc = "Rockstar Games Launcher"; Category = "Gaming" },
+        @{Pattern = "AmazonGames*"; Desc = "Amazon Games"; Category = "Gaming" },
+        @{Pattern = "Playnite*"; Desc = "Playnite Game Launcher"; Category = "Gaming" },
+        @{Pattern = "GameBar*"; Desc = "Xbox Game Bar"; Category = "Gaming" },
 
         # ─── Entertainment & Media ───
-        @{Pattern="Spotify*";                   Desc="Spotify";                    Category="Entertainment"},
-        @{Pattern="iTunesHelper*";              Desc="iTunes Helper";              Category="Entertainment"},
-        @{Pattern="iTunes*";                    Desc="iTunes";                     Category="Entertainment"},
-        @{Pattern="RealPlayer*";                Desc="RealPlayer";                 Category="Entertainment"},
-        @{Pattern="VLC*";                       Desc="VLC Media Player";           Category="Entertainment"},
-        @{Pattern="Plex*";                      Desc="Plex Media Server";          Category="Entertainment"},
-        @{Pattern="Amazon Music*";              Desc="Amazon Music";               Category="Entertainment"},
-        @{Pattern="Deezer*";                    Desc="Deezer";                     Category="Entertainment"},
-        @{Pattern="Tidal*";                     Desc="Tidal Music";                Category="Entertainment"},
+        @{Pattern = "Spotify*"; Desc = "Spotify"; Category = "Entertainment" },
+        @{Pattern = "iTunesHelper*"; Desc = "iTunes Helper"; Category = "Entertainment" },
+        @{Pattern = "iTunes*"; Desc = "iTunes"; Category = "Entertainment" },
+        @{Pattern = "RealPlayer*"; Desc = "RealPlayer"; Category = "Entertainment" },
+        @{Pattern = "VLC*"; Desc = "VLC Media Player"; Category = "Entertainment" },
+        @{Pattern = "Plex*"; Desc = "Plex Media Server"; Category = "Entertainment" },
+        @{Pattern = "Amazon Music*"; Desc = "Amazon Music"; Category = "Entertainment" },
+        @{Pattern = "Deezer*"; Desc = "Deezer"; Category = "Entertainment" },
+        @{Pattern = "Tidal*"; Desc = "Tidal Music"; Category = "Entertainment" },
 
         # ─── Cloud Sync ───
-        @{Pattern="OneDrive*";                  Desc="Microsoft OneDrive";         Category="Cloud Sync"},
-        @{Pattern="Dropbox";                    Desc="Dropbox";                    Category="Cloud Sync"},
-        @{Pattern="GoogleDrive*";               Desc="Google Drive";               Category="Cloud Sync"},
-        @{Pattern="iCloud*";                    Desc="Apple iCloud";               Category="Cloud Sync"},
-        @{Pattern="*BoxSync*";                  Desc="Box Sync";                   Category="Cloud Sync"},
-        @{Pattern="MEGA*";                      Desc="MEGA Cloud Sync";            Category="Cloud Sync"},
-        @{Pattern="pCloud*";                    Desc="pCloud Drive";               Category="Cloud Sync"},
-        @{Pattern="Syncthing*";                 Desc="Syncthing";                  Category="Cloud Sync"},
-        @{Pattern="Nextcloud*";                 Desc="Nextcloud Client";           Category="Cloud Sync"},
-        @{Pattern="Resilio*";                   Desc="Resilio Sync";               Category="Cloud Sync"},
+        @{Pattern = "OneDrive*"; Desc = "Microsoft OneDrive"; Category = "Cloud Sync" },
+        @{Pattern = "Dropbox"; Desc = "Dropbox"; Category = "Cloud Sync" },
+        @{Pattern = "GoogleDrive*"; Desc = "Google Drive"; Category = "Cloud Sync" },
+        @{Pattern = "iCloud*"; Desc = "Apple iCloud"; Category = "Cloud Sync" },
+        @{Pattern = "*BoxSync*"; Desc = "Box Sync"; Category = "Cloud Sync" },
+        @{Pattern = "MEGAsync*"; Desc = "MEGA Cloud Sync"; Category = "Cloud Sync" },
+        @{Pattern = "pCloud*"; Desc = "pCloud Drive"; Category = "Cloud Sync" },
+        @{Pattern = "Syncthing*"; Desc = "Syncthing"; Category = "Cloud Sync" },
+        @{Pattern = "Nextcloud*"; Desc = "Nextcloud Client"; Category = "Cloud Sync" },
+        @{Pattern = "Resilio*"; Desc = "Resilio Sync"; Category = "Cloud Sync" },
 
         # ─── Updaters (almost always safe to disable) ───
-        @{Pattern="Adobe*Update*";              Desc="Adobe Updater";              Category="Updater"},
-        @{Pattern="AdobeAAM*";                  Desc="Adobe Application Manager";  Category="Updater"},
-        @{Pattern="CCXProcess*";                Desc="Adobe Creative Cloud";       Category="Updater"},
-        @{Pattern="AdobeGC*";                   Desc="Adobe Genuine Service";      Category="Updater"},
-        @{Pattern="GoogleUpdate*";              Desc="Google Update Service";      Category="Updater"},
-        @{Pattern="DropboxUpdate*";             Desc="Dropbox Updater";            Category="Updater"},
-        @{Pattern="Opera*Assistant*";           Desc="Opera Browser Assistant";    Category="Updater"},
-        @{Pattern="BraveSoftware*";             Desc="Brave Browser Helper";       Category="Updater"},
-        @{Pattern="Vivaldi*";                   Desc="Vivaldi Browser Helper";     Category="Updater"},
-        @{Pattern="CCleanerBrowser*";           Desc="CCleaner Browser";           Category="Updater"},
-        @{Pattern="Microsoft*Update*";          Desc="Microsoft Update Helper";    Category="Updater"},
-        @{Pattern="Java*Update*";               Desc="Java Update Scheduler";      Category="Updater"},
-        @{Pattern="jusched*";                   Desc="Java Update Scheduler";      Category="Updater"},
-        @{Pattern="DellUpdate*";                Desc="Dell Update Service";        Category="Updater"},
-        @{Pattern="HPUpdate*";                  Desc="HP Update Service";          Category="Updater"},
-        @{Pattern="LenovoVantage*";             Desc="Lenovo Vantage";             Category="Updater"},
-        @{Pattern="Lenovo*Update*";             Desc="Lenovo Update Service";      Category="Updater"},
-        @{Pattern="ASUSUpdate*";                Desc="ASUS Update Service";        Category="Updater"},
+        @{Pattern = "Adobe*Update*"; Desc = "Adobe Updater"; Category = "Updater" },
+        @{Pattern = "AdobeAAM*"; Desc = "Adobe Application Manager"; Category = "Updater" },
+        @{Pattern = "CCXProcess*"; Desc = "Adobe Creative Cloud"; Category = "Updater" },
+        @{Pattern = "AdobeGC*"; Desc = "Adobe Genuine Service"; Category = "Updater" },
+        @{Pattern = "GoogleUpdate*"; Desc = "Google Update Service"; Category = "Updater" },
+        @{Pattern = "DropboxUpdate*"; Desc = "Dropbox Updater"; Category = "Updater" },
+        @{Pattern = "Opera*Assistant*"; Desc = "Opera Browser Assistant"; Category = "Updater" },
+        @{Pattern = "BraveSoftware*"; Desc = "Brave Browser Helper"; Category = "Updater" },
+        @{Pattern = "Vivaldi*"; Desc = "Vivaldi Browser Helper"; Category = "Updater" },
+        @{Pattern = "CCleanerBrowser*"; Desc = "CCleaner Browser"; Category = "Updater" },
+        @{Pattern = "Microsoft*Update*"; Desc = "Microsoft Update Helper"; Category = "Updater" },
+        @{Pattern = "Java*Update*"; Desc = "Java Update Scheduler"; Category = "Updater" },
+        @{Pattern = "jusched*"; Desc = "Java Update Scheduler"; Category = "Updater" },
+        @{Pattern = "DellUpdate*"; Desc = "Dell Update Service"; Category = "Updater" },
+        @{Pattern = "HPUpdate*"; Desc = "HP Update Service"; Category = "Updater" },
+        @{Pattern = "LenovoVantage*"; Desc = "Lenovo Vantage"; Category = "Updater" },
+        @{Pattern = "Lenovo*Update*"; Desc = "Lenovo Update Service"; Category = "Updater" },
+        @{Pattern = "ASUSUpdate*"; Desc = "ASUS Update Service"; Category = "Updater" },
 
         # ─── Productivity ───
-        @{Pattern="Grammarly*";                 Desc="Grammarly";                  Category="Productivity"},
-        @{Pattern="Canva*";                     Desc="Canva";                      Category="Productivity"},
-        @{Pattern="Notion*";                    Desc="Notion";                     Category="Productivity"},
-        @{Pattern="Todoist*";                   Desc="Todoist";                    Category="Productivity"},
-        @{Pattern="Evernote*";                  Desc="Evernote";                   Category="Productivity"},
-        @{Pattern="OneNote*";                   Desc="Microsoft OneNote";          Category="Productivity"},
-        @{Pattern="Trello*";                    Desc="Trello";                     Category="Productivity"},
-        @{Pattern="Asana*";                     Desc="Asana";                      Category="Productivity"},
-        @{Pattern="ClickUp*";                   Desc="ClickUp";                    Category="Productivity"},
-        @{Pattern="Obsidian*";                  Desc="Obsidian Notes";             Category="Productivity"},
+        @{Pattern = "Grammarly*"; Desc = "Grammarly"; Category = "Productivity" },
+        @{Pattern = "Canva*"; Desc = "Canva"; Category = "Productivity" },
+        @{Pattern = "Notion*"; Desc = "Notion"; Category = "Productivity" },
+        @{Pattern = "Todoist*"; Desc = "Todoist"; Category = "Productivity" },
+        @{Pattern = "Evernote*"; Desc = "Evernote"; Category = "Productivity" },
+        @{Pattern = "OneNote*"; Desc = "Microsoft OneNote"; Category = "Productivity" },
+        @{Pattern = "Trello*"; Desc = "Trello"; Category = "Productivity" },
+        @{Pattern = "Asana*"; Desc = "Asana"; Category = "Productivity" },
+        @{Pattern = "ClickUp*"; Desc = "ClickUp"; Category = "Productivity" },
+        @{Pattern = "Obsidian*"; Desc = "Obsidian Notes"; Category = "Productivity" },
 
         # ─── Password Managers ───
-        @{Pattern="1Password*";                 Desc="1Password";                  Category="Password Manager"},
-        @{Pattern="LastPass*";                  Desc="LastPass";                   Category="Password Manager"},
-        @{Pattern="Bitwarden*";                 Desc="Bitwarden";                  Category="Password Manager"},
-        @{Pattern="Dashlane*";                  Desc="Dashlane";                   Category="Password Manager"},
-        @{Pattern="KeePass*";                   Desc="KeePass";                    Category="Password Manager"},
-        @{Pattern="NordPass*";                  Desc="NordPass";                   Category="Password Manager"},
-        @{Pattern="RoboForm*";                  Desc="RoboForm";                   Category="Password Manager"},
-        @{Pattern="Keeper*";                    Desc="Keeper Password Manager";    Category="Password Manager"},
+        @{Pattern = "1Password*"; Desc = "1Password"; Category = "Password Manager" },
+        @{Pattern = "LastPass*"; Desc = "LastPass"; Category = "Password Manager" },
+        @{Pattern = "Bitwarden*"; Desc = "Bitwarden"; Category = "Password Manager" },
+        @{Pattern = "Dashlane*"; Desc = "Dashlane"; Category = "Password Manager" },
+        @{Pattern = "KeePass*"; Desc = "KeePass"; Category = "Password Manager" },
+        @{Pattern = "NordPass*"; Desc = "NordPass"; Category = "Password Manager" },
+        @{Pattern = "RoboForm*"; Desc = "RoboForm"; Category = "Password Manager" },
+        @{Pattern = "Keeper*"; Desc = "Keeper Password Manager"; Category = "Password Manager" },
 
         # ─── VPN Services ───
-        @{Pattern="NordVPN*";                   Desc="NordVPN";                    Category="VPN"},
-        @{Pattern="ExpressVPN*";                Desc="ExpressVPN";                 Category="VPN"},
-        @{Pattern="Windscribe*";                Desc="Windscribe VPN";             Category="VPN"},
-        @{Pattern="ProtonVPN*";                 Desc="ProtonVPN";                  Category="VPN"},
-        @{Pattern="Surfshark*";                 Desc="Surfshark VPN";              Category="VPN"},
-        @{Pattern="CyberGhost*";                Desc="CyberGhost VPN";             Category="VPN"},
-        @{Pattern="PIA*";                       Desc="Private Internet Access";    Category="VPN"},
-        @{Pattern="Mullvad*";                   Desc="Mullvad VPN";                Category="VPN"},
-        @{Pattern="TunnelBear*";                Desc="TunnelBear VPN";             Category="VPN"},
-        @{Pattern="Hotspot*Shield*";            Desc="Hotspot Shield VPN";         Category="VPN"},
+        @{Pattern = "NordVPN*"; Desc = "NordVPN"; Category = "VPN" },
+        @{Pattern = "ExpressVPN*"; Desc = "ExpressVPN"; Category = "VPN" },
+        @{Pattern = "Windscribe*"; Desc = "Windscribe VPN"; Category = "VPN" },
+        @{Pattern = "ProtonVPN*"; Desc = "ProtonVPN"; Category = "VPN" },
+        @{Pattern = "Surfshark*"; Desc = "Surfshark VPN"; Category = "VPN" },
+        @{Pattern = "CyberGhost*"; Desc = "CyberGhost VPN"; Category = "VPN" },
+        @{Pattern = "pia-client*"; Desc = "Private Internet Access"; Category = "VPN" },
+        @{Pattern = "PrivateInternetAccess*"; Desc = "Private Internet Access"; Category = "VPN" },
+        @{Pattern = "Mullvad*"; Desc = "Mullvad VPN"; Category = "VPN" },
+        @{Pattern = "TunnelBear*"; Desc = "TunnelBear VPN"; Category = "VPN" },
+        @{Pattern = "Hotspot*Shield*"; Desc = "Hotspot Shield VPN"; Category = "VPN" },
 
         # ─── Peripherals & Hardware Utilities ───
-        @{Pattern="LogiOptions*";               Desc="Logitech Options+";          Category="Peripheral"},
-        @{Pattern="Logi*";                      Desc="Logitech Software";          Category="Peripheral"},
-        @{Pattern="GHUB*";                      Desc="Logitech G HUB";             Category="Peripheral"},
-        @{Pattern="iCUE*";                      Desc="Corsair iCUE";               Category="Peripheral"},
-        @{Pattern="Corsair*";                   Desc="Corsair Software";           Category="Peripheral"},
-        @{Pattern="Razer*";                     Desc="Razer Synapse";              Category="Peripheral"},
-        @{Pattern="SteelSeries*";               Desc="SteelSeries GG/Engine";      Category="Peripheral"},
-        @{Pattern="HyperX*";                    Desc="HyperX NGENU ITY";            Category="Peripheral"},
-        @{Pattern="NZXT*";                      Desc="NZXT CAM";                   Category="Peripheral"},
-        @{Pattern="Elgato*";                    Desc="Elgato Software";            Category="Peripheral"},
-        @{Pattern="StreamDeck*";                Desc="Elgato Stream Deck";         Category="Peripheral"},
-        @{Pattern="JabraDirectSetup*";          Desc="Jabra Direct";               Category="Peripheral"},
-        @{Pattern="Jabra*";                     Desc="Jabra Software";             Category="Peripheral"},
-        @{Pattern="Poly*";                      Desc="Poly (Plantronics)";         Category="Peripheral"},
-        @{Pattern="Sonos*";                     Desc="Sonos Controller";           Category="Peripheral"},
+        @{Pattern = "LogiOptions*"; Desc = "Logitech Options+"; Category = "Peripheral" },
+        @{Pattern = "LogiBolt*"; Desc = "Logitech Bolt"; Category = "Peripheral" },
+        @{Pattern = "LogiTune*"; Desc = "Logitech Tune"; Category = "Peripheral" },
+        @{Pattern = "GHUB*"; Desc = "Logitech G HUB"; Category = "Peripheral" },
+        @{Pattern = "iCUE*"; Desc = "Corsair iCUE"; Category = "Peripheral" },
+        @{Pattern = "Corsair*"; Desc = "Corsair Software"; Category = "Peripheral" },
+        @{Pattern = "Razer*"; Desc = "Razer Synapse"; Category = "Peripheral" },
+        @{Pattern = "SteelSeries*"; Desc = "SteelSeries GG/Engine"; Category = "Peripheral" },
+        @{Pattern = "HyperX*"; Desc = "HyperX NGENUITY"; Category = "Peripheral" },
+        @{Pattern = "NZXT*"; Desc = "NZXT CAM"; Category = "Peripheral" },
+        @{Pattern = "Elgato*"; Desc = "Elgato Software"; Category = "Peripheral" },
+        @{Pattern = "StreamDeck*"; Desc = "Elgato Stream Deck"; Category = "Peripheral" },
+        @{Pattern = "JabraDirectSetup*"; Desc = "Jabra Direct"; Category = "Peripheral" },
+        @{Pattern = "Jabra*"; Desc = "Jabra Software"; Category = "Peripheral" },
+        @{Pattern = "Poly*"; Desc = "Poly (Plantronics)"; Category = "Peripheral" },
+        @{Pattern = "Sonos*"; Desc = "Sonos Controller"; Category = "Peripheral" },
 
         # ─── Creative & Streaming ───
-        @{Pattern="Figma*";                     Desc="Figma Agent";                Category="Creative"},
-        @{Pattern="OBS*";                       Desc="OBS Studio";                 Category="Creative"},
-        @{Pattern="Streamlabs*";                Desc="Streamlabs Desktop";         Category="Creative"},
-        @{Pattern="XSplit*";                    Desc="XSplit Broadcaster";         Category="Creative"},
-        @{Pattern="Audacity*";                  Desc="Audacity";                   Category="Creative"},
-        @{Pattern="GIMP*";                      Desc="GIMP Image Editor";          Category="Creative"},
-        @{Pattern="Blender*";                   Desc="Blender 3D";                 Category="Creative"},
-        @{Pattern="DaVinci*";                   Desc="DaVinci Resolve";            Category="Creative"},
+        @{Pattern = "Figma*"; Desc = "Figma Agent"; Category = "Creative" },
+        @{Pattern = "OBS*"; Desc = "OBS Studio"; Category = "Creative" },
+        @{Pattern = "Streamlabs*"; Desc = "Streamlabs Desktop"; Category = "Creative" },
+        @{Pattern = "XSplit*"; Desc = "XSplit Broadcaster"; Category = "Creative" },
+        @{Pattern = "Audacity*"; Desc = "Audacity"; Category = "Creative" },
+        @{Pattern = "GIMP*"; Desc = "GIMP Image Editor"; Category = "Creative" },
+        @{Pattern = "Blender*"; Desc = "Blender 3D"; Category = "Creative" },
+        @{Pattern = "DaVinci*"; Desc = "DaVinci Resolve"; Category = "Creative" },
 
         # ─── Dev Tools ───
-        @{Pattern="Docker*";                    Desc="Docker Desktop";             Category="Dev Tool"},
-        @{Pattern="Postman*";                   Desc="Postman API Client";         Category="Dev Tool"},
-        @{Pattern="GitHubDesktop*";             Desc="GitHub Desktop";             Category="Dev Tool"},
-        @{Pattern="SourceTree*";                Desc="SourceTree Git Client";      Category="Dev Tool"},
-        @{Pattern="Insomnia*";                  Desc="Insomnia REST Client";       Category="Dev Tool"},
+        @{Pattern = "Docker*"; Desc = "Docker Desktop"; Category = "Dev Tool" },
+        @{Pattern = "Postman*"; Desc = "Postman API Client"; Category = "Dev Tool" },
+        @{Pattern = "GitHubDesktop*"; Desc = "GitHub Desktop"; Category = "Dev Tool" },
+        @{Pattern = "SourceTree*"; Desc = "SourceTree Git Client"; Category = "Dev Tool" },
+        @{Pattern = "Insomnia*"; Desc = "Insomnia REST Client"; Category = "Dev Tool" },
 
         # ─── Browser Auto-Launch ───
-        @{Pattern="MicrosoftEdge*Auto*";        Desc="Edge Auto-Launch";           Category="Browser"},
-        @{Pattern="Google*Chrome*Auto*";        Desc="Chrome Auto-Launch";         Category="Browser"},
-        @{Pattern="Firefox*Auto*";              Desc="Firefox Auto-Launch";        Category="Browser"},
+        @{Pattern = "MicrosoftEdge*Auto*"; Desc = "Edge Auto-Launch"; Category = "Browser" },
+        @{Pattern = "Google*Chrome*Auto*"; Desc = "Chrome Auto-Launch"; Category = "Browser" },
+        @{Pattern = "Firefox*Auto*"; Desc = "Firefox Auto-Launch"; Category = "Browser" },
 
         # ─── System Utilities / Bloat ───
-        @{Pattern="Cortana*";                   Desc="Cortana";                    Category="Other"},
-        @{Pattern="YourPhone*";                 Desc="Phone Link";                 Category="Other"},
-        @{Pattern="PhoneLink*";                 Desc="Phone Link";                 Category="Other"},
-        @{Pattern="QuickTime*";                 Desc="QuickTime";                  Category="Other"},
-        @{Pattern="CyberLink*";                 Desc="CyberLink Media";            Category="Other"},
-        @{Pattern="NahimicService*";            Desc="Nahimic (audio bloatware)";  Category="Other"},
-        @{Pattern="Nahimic*";                   Desc="Nahimic Companion";          Category="Other"},
-        @{Pattern="WMPNetworkSvc*";             Desc="WMP Network Sharing";        Category="Other"},
-        @{Pattern="CCleaner*";                  Desc="CCleaner";                   Category="Other"},
-        @{Pattern="IObit*";                     Desc="IObit Software";             Category="Other"},
-        @{Pattern="Advanced SystemCare*";       Desc="Advanced SystemCare";        Category="Other"},
-        @{Pattern="Wise*";                      Desc="Wise Care/Cleaner";          Category="Other"},
-        @{Pattern="Glary*";                     Desc="Glary Utilities";            Category="Other"},
-        @{Pattern="WinZip*";                    Desc="WinZip";                     Category="Other"},
-        @{Pattern="WinRAR*";                    Desc="WinRAR";                     Category="Other"},
-        @{Pattern="PowerISO*";                  Desc="PowerISO";                   Category="Other"},
-        @{Pattern="Acronis*";                   Desc="Acronis True Image";         Category="Other"},
-        @{Pattern="EaseUS*";                    Desc="EaseUS Software";            Category="Other"},
-        @{Pattern="MiniTool*";                  Desc="MiniTool Software";          Category="Other"},
-        @{Pattern="Wondershare*";               Desc="Wondershare Software";       Category="Other"},
-        @{Pattern="CyberReason*";               Desc="CyberReason (if not corporate)"; Category="Other"},
+        @{Pattern = "Cortana*"; Desc = "Cortana"; Category = "Other" },
+        @{Pattern = "YourPhone*"; Desc = "Phone Link"; Category = "Other" },
+        @{Pattern = "PhoneLink*"; Desc = "Phone Link"; Category = "Other" },
+        @{Pattern = "QuickTime*"; Desc = "QuickTime"; Category = "Other" },
+        @{Pattern = "CyberLink*"; Desc = "CyberLink Media"; Category = "Other" },
+        @{Pattern = "NahimicService*"; Desc = "Nahimic (audio bloatware)"; Category = "Other" },
+        @{Pattern = "Nahimic*"; Desc = "Nahimic Companion"; Category = "Other" },
+        @{Pattern = "WMPNetworkSvc*"; Desc = "WMP Network Sharing"; Category = "Other" },
+        @{Pattern = "CCleaner*"; Desc = "CCleaner"; Category = "Other" },
+        @{Pattern = "IObit*"; Desc = "IObit Software"; Category = "Other" },
+        @{Pattern = "Advanced SystemCare*"; Desc = "Advanced SystemCare"; Category = "Other" },
+        @{Pattern = "WiseCare*"; Desc = "Wise Care 365"; Category = "Other" },
+        @{Pattern = "WiseClean*"; Desc = "Wise Disk Cleaner"; Category = "Other" },
+        @{Pattern = "Glary*"; Desc = "Glary Utilities"; Category = "Other" },
+        @{Pattern = "WinZip*"; Desc = "WinZip"; Category = "Other" },
+        @{Pattern = "WinRAR*"; Desc = "WinRAR"; Category = "Other" },
+        @{Pattern = "PowerISO*"; Desc = "PowerISO"; Category = "Other" },
+        @{Pattern = "Acronis*"; Desc = "Acronis True Image"; Category = "Other" },
+        @{Pattern = "EaseUS*"; Desc = "EaseUS Software"; Category = "Other" },
+        @{Pattern = "MiniTool*"; Desc = "MiniTool Software"; Category = "Other" },
+        @{Pattern = "Wondershare*"; Desc = "Wondershare Software"; Category = "Other" },
+        @{Pattern = "CyberReason*"; Desc = "CyberReason (if not corporate)"; Category = "Other" },
 
         # ─── OEM Bloatware ───
-        @{Pattern="DellSupportAssist*";         Desc="Dell SupportAssist";         Category="OEM Bloat"},
-        @{Pattern="DellOptimizer*";             Desc="Dell Optimizer";             Category="OEM Bloat"},
-        @{Pattern="Dell*Inc*";                  Desc="Dell Software";              Category="OEM Bloat"},
-        @{Pattern="HPJumpStart*";               Desc="HP JumpStart";               Category="OEM Bloat"},
-        @{Pattern="HPSupportSolutions*";        Desc="HP Support Solutions";       Category="OEM Bloat"},
-        @{Pattern="HPOmenCommander*";           Desc="HP OMEN Gaming Hub";         Category="OEM Bloat"},
-        @{Pattern="AsusSoftwareManager*";       Desc="ASUS Software Manager";      Category="OEM Bloat"},
-        @{Pattern="ArmouryCrate*";              Desc="ASUS Armoury Crate";         Category="OEM Bloat"},
-        @{Pattern="MyASUS*";                    Desc="MyASUS";                     Category="OEM Bloat"},
-        @{Pattern="LenovoNow*";                 Desc="Lenovo Now";                 Category="OEM Bloat"},
-        @{Pattern="AcerQuickAccess*";           Desc="Acer Quick Access";          Category="OEM Bloat"},
-        @{Pattern="AcerCare*";                  Desc="Acer Care Center";           Category="OEM Bloat"},
-        @{Pattern="MSI*Center*";                Desc="MSI Center";                 Category="OEM Bloat"},
-        @{Pattern="DragonCenter*";              Desc="MSI Dragon Center";          Category="OEM Bloat"},
-        @{Pattern="Samsung*Magician*";          Desc="Samsung Magician";           Category="OEM Bloat"},
-        @{Pattern="Samsung*Settings*";          Desc="Samsung Settings";           Category="OEM Bloat"},
+        @{Pattern = "DellSupportAssist*"; Desc = "Dell SupportAssist"; Category = "OEM Bloat" },
+        @{Pattern = "DellOptimizer*"; Desc = "Dell Optimizer"; Category = "OEM Bloat" },
+        @{Pattern = "Dell*Inc*"; Desc = "Dell Software"; Category = "OEM Bloat" },
+        @{Pattern = "HPJumpStart*"; Desc = "HP JumpStart"; Category = "OEM Bloat" },
+        @{Pattern = "HPSupportSolutions*"; Desc = "HP Support Solutions"; Category = "OEM Bloat" },
+        @{Pattern = "HPOmenCommander*"; Desc = "HP OMEN Gaming Hub"; Category = "OEM Bloat" },
+        @{Pattern = "AsusSoftwareManager*"; Desc = "ASUS Software Manager"; Category = "OEM Bloat" },
+        @{Pattern = "ArmouryCrate*"; Desc = "ASUS Armoury Crate"; Category = "OEM Bloat" },
+        @{Pattern = "MyASUS*"; Desc = "MyASUS"; Category = "OEM Bloat" },
+        @{Pattern = "LenovoNow*"; Desc = "Lenovo Now"; Category = "OEM Bloat" },
+        @{Pattern = "AcerQuickAccess*"; Desc = "Acer Quick Access"; Category = "OEM Bloat" },
+        @{Pattern = "AcerCare*"; Desc = "Acer Care Center"; Category = "OEM Bloat" },
+        @{Pattern = "MSI*Center*"; Desc = "MSI Center"; Category = "OEM Bloat" },
+        @{Pattern = "DragonCenter*"; Desc = "MSI Dragon Center"; Category = "OEM Bloat" },
+        @{Pattern = "Samsung*Magician*"; Desc = "Samsung Magician"; Category = "OEM Bloat" },
+        @{Pattern = "Samsung*Settings*"; Desc = "Samsung Settings"; Category = "OEM Bloat" },
 
         # ─── Remote Desktop / Support ───
-        @{Pattern="TeamViewer*";                Desc="TeamViewer";                 Category="Remote"},
-        @{Pattern="AnyDesk*";                   Desc="AnyDesk";                    Category="Remote"},
-        @{Pattern="Parsec*";                    Desc="Parsec Remote Desktop";      Category="Remote"},
-        @{Pattern="RustDesk*";                  Desc="RustDesk";                   Category="Remote"},
-        @{Pattern="Chrome*Remote*Desktop*";     Desc="Chrome Remote Desktop";      Category="Remote"}
+        @{Pattern = "TeamViewer*"; Desc = "TeamViewer"; Category = "Remote" },
+        @{Pattern = "AnyDesk*"; Desc = "AnyDesk"; Category = "Remote" },
+        @{Pattern = "Parsec*"; Desc = "Parsec Remote Desktop"; Category = "Remote" },
+        @{Pattern = "RustDesk*"; Desc = "RustDesk"; Category = "Remote" },
+        @{Pattern = "Chrome*Remote*Desktop*"; Desc = "Chrome Remote Desktop"; Category = "Remote" }
     )
     
     # ── Phase 1: Scan all startup entries ──
@@ -1104,9 +1235,9 @@ function Optimize-Startup {
     }
     
     # ── Phase 2: Categorize entries ──
-    $protectedItems     = @()
-    $nonEssentialItems  = @()
-    $unknownItems       = @()
+    $protectedItems = @()
+    $nonEssentialItems = @()
+    $unknownItems = @()
     
     foreach ($entry in $allEntries) {
         $isProtected = $false
@@ -1225,7 +1356,8 @@ function Optimize-Startup {
                     Write-Log "$($item.Desc) ($($item.Name)): Disabled" "SUCCESS"
                     $disabledCount++
                     $disabledPatterns += $item.Name
-                } catch {
+                }
+                catch {
                     Write-Log "$($item.Name): Could not disable - $($_.Exception.Message)" "WARNING"
                     Write-Host "    Tip: This entry may be protected by Group Policy or antivirus software" -ForegroundColor Gray
                 }
@@ -1247,10 +1379,12 @@ function Optimize-Startup {
                                 Write-Log "$($item.Name): Disabled" "SUCCESS"
                                 $disabledCount++
                                 $disabledPatterns += $item.Name
-                            } catch {
+                            }
+                            catch {
                                 Write-Log "$($item.Name): Could not disable" "WARNING"
                             }
-                        } else {
+                        }
+                        else {
                             Write-Host "          Kept." -ForegroundColor Gray
                         }
                     }
@@ -1280,10 +1414,12 @@ function Optimize-Startup {
                         Write-Log "$($item.Desc) ($($item.Name)): Disabled" "SUCCESS"
                         $disabledCount++
                         $disabledPatterns += $item.Name
-                    } catch {
+                    }
+                    catch {
                         Write-Log "$($item.Name): Could not disable - $($_.Exception.Message)" "WARNING"
                     }
-                } else {
+                }
+                else {
                     Write-Host "          Kept." -ForegroundColor Gray
                 }
             }
@@ -1327,7 +1463,7 @@ function Optimize-Startup {
             }
             
             foreach ($term in $searchTerms) {
-                $matchingTasks = $activeTasks | Where-Object { $_.TaskName -like "*$term*" -and $_.TaskName -notin $disabledTaskNames }
+                $matchingTasks = $activeTasks | Where-Object { $_.TaskName -like "*$term*" -and $_.TaskName -notin $disabledTaskNames -and $_.State -ne "Disabled" }
                 foreach ($task in $matchingTasks) {
                     # Check if this task is protected
                     $isTaskProtected = $false
@@ -1347,7 +1483,8 @@ function Optimize-Startup {
                         Write-Log "Disabled task: $($task.TaskName)" "SUCCESS"
                         $taskDisabled++
                         $disabledTaskNames += $task.TaskName
-                    } catch {
+                    }
+                    catch {
                         Write-Log "Could not disable task: $($task.TaskName)" "WARNING"
                     }
                 }
@@ -1357,7 +1494,8 @@ function Optimize-Startup {
     
     if ($taskDisabled -gt 0) {
         Write-Log "Disabled $taskDisabled related scheduled tasks" "SUCCESS"
-    } else {
+    }
+    else {
         Write-Host "  No related scheduled tasks found." -ForegroundColor Gray
     }
     
@@ -1371,7 +1509,7 @@ function Optimize-Startup {
 }
 
 # ============================================
-# 7. OPTIMIZE RAM & PERFORMANCE
+# 8. OPTIMIZE RAM & PERFORMANCE
 # ============================================
 function Optimize-RAM {
     Write-Host "`n========================================" -ForegroundColor Cyan
@@ -1380,7 +1518,7 @@ function Optimize-RAM {
     
     # Before stats
     $osBefore = Get-CimInstance Win32_OperatingSystem
-    $ramBefore = [math]::Round(($osBefore.TotalVisibleMemorySize - $osBefore.FreePhysicalMemory)/1MB, 2)
+    $ramBefore = [math]::Round(($osBefore.TotalVisibleMemorySize - $osBefore.FreePhysicalMemory) / 1MB, 2)
     
     # Visual Effects
     Write-Log "[1/6] Optimizing visual effects..." "STEP"
@@ -1393,9 +1531,9 @@ function Optimize-RAM {
     
     # Disable animations
     $animSettings = @(
-        @{Path="HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"; Name="TaskbarAnimations"; Value=0},
-        @{Path="HKCU:\Control Panel\Desktop\WindowMetrics"; Name="MinAnimate"; Value="0"},
-        @{Path="HKCU:\Control Panel\Desktop"; Name="MenuShowDelay"; Value="50"}
+        @{Path = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"; Name = "TaskbarAnimations"; Value = 0 },
+        @{Path = "HKCU:\Control Panel\Desktop\WindowMetrics"; Name = "MinAnimate"; Value = "0" },
+        @{Path = "HKCU:\Control Panel\Desktop"; Name = "MenuShowDelay"; Value = "50" }
     )
     
     foreach ($setting in $animSettings) {
@@ -1419,13 +1557,16 @@ function Optimize-RAM {
             powercfg -duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61 2>$null
             if ($LASTEXITCODE -eq 0) {
                 Write-Log "Ultimate Performance plan created!" "SUCCESS"
-            } else {
+            }
+            else {
                 Write-Log "Using current power plan" "WARNING"
             }
-        } else {
+        }
+        else {
             Write-Log "High Performance plan activated" "SUCCESS"
         }
-    } catch {
+    }
+    catch {
         Write-Log "Power plan optimization skipped: $($_.Exception.Message)" "WARNING"
         Write-Host "    Tip: Your device may use a manufacturer-locked power plan (common on laptops)" -ForegroundColor Gray
         Write-Host "    Fix: Check Settings > System > Power & Battery for available plans" -ForegroundColor Gray
@@ -1436,10 +1577,10 @@ function Optimize-RAM {
     $gameSettings = @{
         "HKCU:\Software\Microsoft\GameBar" = @{
             "AutoGameModeEnabled" = 0
-            "AllowAutoGameMode" = 0
-            "ShowStartupPanel" = 0
+            "AllowAutoGameMode"   = 0
+            "ShowStartupPanel"    = 0
         }
-        "HKCU:\System\GameConfigStore" = @{
+        "HKCU:\System\GameConfigStore"     = @{
             "GameDVR_Enabled" = 0
         }
     }
@@ -1503,7 +1644,8 @@ function Optimize-RAM {
                     $trimmedMB += [math]::Round($freed / 1MB, 1)
                     $trimmedCount++
                 }
-            } catch {
+            }
+            catch {
                 # Access denied for protected/system processes — expected
             }
         }
@@ -1514,7 +1656,8 @@ function Optimize-RAM {
         [System.GC]::Collect()
         
         Write-Log "Trimmed $trimmedCount processes, freed ~${trimmedMB} MB of idle RAM" "SUCCESS"
-    } catch {
+    }
+    catch {
         Write-Log "Working set trim failed: $($_.Exception.Message)" "WARNING"
         # Fallback to basic GC
         [System.GC]::Collect()
@@ -1525,190 +1668,233 @@ function Optimize-RAM {
     # After stats
     Start-Sleep -Seconds 2
     $osAfter = Get-CimInstance Win32_OperatingSystem
-    $ramAfter = [math]::Round(($osAfter.TotalVisibleMemorySize - $osAfter.FreePhysicalMemory)/1MB, 2)
+    $ramAfter = [math]::Round(($osAfter.TotalVisibleMemorySize - $osAfter.FreePhysicalMemory) / 1MB, 2)
     $ramSaved = $ramBefore - $ramAfter
     
     Write-Host "`n  RAM Before: $ramBefore GB" -ForegroundColor Gray
     Write-Host "  RAM After: $ramAfter GB" -ForegroundColor Gray
-    Write-Host "  RAM Freed: $ramSaved GB" -ForegroundColor $(if($ramSaved -gt 0){"Green"}else{"Yellow"})
+    Write-Host "  RAM Freed: $ramSaved GB" -ForegroundColor $(if ($ramSaved -gt 0) { "Green" }else { "Yellow" })
     
     Write-Log "`nRAM & Performance fully optimized!" "SUCCESS"
     Wait-KeyPress
 }
 
 # ============================================
-# 8. DEEP DISK CLEAN
+# 9. OPTIMIZE WINDOWS SERVICES
 # ============================================
-function Invoke-DiskCleanup {
+function Optimize-Services {
     Write-Host "`n========================================" -ForegroundColor Cyan
-    Write-Host "DEEP DISK CLEANUP" -ForegroundColor Cyan
+    Write-Host "OPTIMIZE WINDOWS SERVICES" -ForegroundColor Cyan
     Write-Host "========================================`n" -ForegroundColor Cyan
     
-    $beforeCleanup = Get-Volume -DriveLetter C
-    $beforeFreeGB = [math]::Round($beforeCleanup.SizeRemaining / 1GB, 2)
-    Write-Host "Current free space on C: $beforeFreeGB GB" -ForegroundColor Gray
-    
-    # Step 1: Temp files
-    Write-Log "`n[1/7] Clearing temp files..." "STEP"
-    $tempFolders = @(
-        "$env:TEMP",
-        "$env:WINDIR\Temp",
-        "$env:LOCALAPPDATA\Temp"
-    )
-    
-    $tempFilesRemoved = 0
-    foreach ($folder in $tempFolders) {
-        if (Test-Path $folder) {
-            $files = Get-ChildItem -Path $folder -Recurse -ErrorAction SilentlyContinue
-            $tempFilesRemoved += $files.Count
-            $files | Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
-        }
-    }
-    Write-Log "Cleared $tempFilesRemoved temp files/folders" "SUCCESS"
-    
-    # Step 2: Browser caches
-    Write-Log "`n[2/7] Clearing browser caches..." "STEP"
-    $caches = @(
-        # Chromium based (Edge, Chrome, Brave, Vivaldi, Arc, Floorp, Opera, Comet) - Support ALL profiles (Default, Profile 1, etc.)
-        "$env:LocalAppData\Microsoft\Edge\User Data\*\Cache",
-        "$env:LocalAppData\Microsoft\Edge\User Data\*\Code Cache",
-        "$env:LocalAppData\Google\Chrome\User Data\*\Cache",
-        "$env:LocalAppData\Google\Chrome\User Data\*\Code Cache",
-        "$env:LocalAppData\BraveSoftware\Brave-Browser\User Data\*\Cache",
-        "$env:LocalAppData\BraveSoftware\Brave-Browser\User Data\*\Code Cache",
-        "$env:LocalAppData\Vivaldi\User Data\*\Cache",
-        "$env:LocalAppData\Vivaldi\User Data\*\Code Cache",
-        "$env:LocalAppData\Arc\User Data\*\Cache",
-        "$env:LocalAppData\Arc\User Data\*\Code Cache",
-        "$env:LocalAppData\Floorp\User Data\*\Cache",
-        "$env:LocalAppData\Comet\User Data\*\Cache",
-        "$env:LocalAppData\Opera Software\Opera Stable\Cache",
-        "$env:AppData\Opera Software\Opera Stable\Cache",
-        
-        # Firefox based (Firefox, Waterfox, Zen, Tor)
-        "$env:LocalAppData\Mozilla\Firefox\Profiles\*.default*\cache2",
-        "$env:LocalAppData\Waterfox\Profiles\*.default*\cache2",
-        "$env:LocalAppData\Zen\Profiles\*.default*\cache2",
-        "$env:LocalAppData\Tor Browser\Browser\TorBrowser\Data\Browser\profile.default\cache2"
-    )
-    foreach ($cache in $caches) {
-        $resolvedPaths = Resolve-Path $cache -ErrorAction SilentlyContinue
-        foreach ($resolved in $resolvedPaths) {
-            if (Test-Path $resolved) {
-                Remove-Item -Path "$resolved\*" -Recurse -Force -ErrorAction SilentlyContinue
+    # Auto-detect boot drive type (SSD vs HDD) with multiple fallbacks
+    $bootDiskType = "Unknown"
+    try {
+        $bootPartition = Get-Partition -DriveLetter C -ErrorAction SilentlyContinue
+        if ($bootPartition) {
+            $bootDisk = Get-PhysicalDisk -ErrorAction SilentlyContinue | Where-Object { $_.DeviceId -eq "$($bootPartition.DiskNumber)" }
+            if ($bootDisk) {
+                $bootDiskType = $bootDisk.MediaType
+                
+                # Fallback 1: If MediaType is Unspecified, check BusType (NVMe = always SSD)
+                if ($bootDiskType -eq "Unspecified" -or [string]::IsNullOrEmpty($bootDiskType)) {
+                    if ($bootDisk.BusType -eq "NVMe") {
+                        $bootDiskType = "SSD"
+                    }
+                }
+                
+                # Fallback 2: Check model name for SSD/NVMe keywords
+                if ($bootDiskType -eq "Unspecified" -or [string]::IsNullOrEmpty($bootDiskType)) {
+                    $modelName = $bootDisk.FriendlyName + " " + $bootDisk.Model
+                    if ($modelName -match "SSD|NVMe|Solid State|M\.2") {
+                        $bootDiskType = "SSD"
+                    }
+                    elseif ($modelName -match "HDD|Hard Disk|Seagate Barracuda|WD Blue|Toshiba DT|HGST") {
+                        $bootDiskType = "HDD"
+                    }
+                }
+                
+                # Fallback 3: Check spin speed (0 RPM = SSD, >0 = HDD)
+                if ($bootDiskType -eq "Unspecified" -or [string]::IsNullOrEmpty($bootDiskType)) {
+                    if ($bootDisk.SpindleSpeed -eq 0) {
+                        $bootDiskType = "SSD"
+                    }
+                    elseif ($bootDisk.SpindleSpeed -gt 0) {
+                        $bootDiskType = "HDD"
+                    }
+                }
             }
         }
     }
-    Write-Log "Browser caches cleared" "SUCCESS"
+    catch {}
     
-    # Step 3: Windows Update cache
-    Write-Log "`n[3/7] Clearing Windows Update cache..." "STEP"
-    Stop-Service wuauserv -Force -ErrorAction SilentlyContinue
-    Stop-Service bits -Force -ErrorAction SilentlyContinue
-    $updatePaths = @(
-        "$env:WINDIR\SoftwareDistribution\Download",
-        "$env:WINDIR\SoftwareDistribution\DataStore"
-    )
-    foreach ($path in $updatePaths) {
-        if (Test-Path $path) {
-            Remove-Item -Path "$path\*" -Recurse -Force -ErrorAction SilentlyContinue
-        }
-    }
-    Start-Service wuauserv -ErrorAction SilentlyContinue
-    Start-Service bits -ErrorAction SilentlyContinue
-    Write-Log "Windows Update cache cleared" "SUCCESS"
-    
-    # Step 4: Windows logs
-    Write-Log "`n[4/7] Clearing old logs..." "STEP"
-    $logFolders = @(
-        "$env:WINDIR\Logs\CBS",
-        "$env:WINDIR\Panther",
-        "$env:LOCALAPPDATA\CrashDumps",
-        "$env:WINDIR\Minidump"
-    )
-    foreach ($logFolder in $logFolders) {
-        if (Test-Path $logFolder) {
-            Get-ChildItem -Path $logFolder -Recurse -ErrorAction SilentlyContinue | 
-                Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays(-$($Config.LogCleanupDays)) } |
-                Remove-Item -Force -Recurse -ErrorAction SilentlyContinue
-        }
-    }
-    Write-Log "Old logs cleared (kept last $($Config.LogCleanupDays) days)" "SUCCESS"
-    
-    # Step 5: Thumbnail cache
-    Write-Log "`n[5/7] Clearing thumbnail cache..." "STEP"
-    $thumbPath = "$env:LOCALAPPDATA\Microsoft\Windows\Explorer"
-    if (Test-Path $thumbPath) {
-        Get-ChildItem -Path $thumbPath -Filter "thumbcache_*" -ErrorAction SilentlyContinue | 
-            Remove-Item -Force -ErrorAction SilentlyContinue
-    }
-    Write-Log "Thumbnail cache cleared" "SUCCESS"
-    
-    # Step 6: Deep System Cleanup via CleanMgr
-    Write-Log "`n[6/7] Running deep system cleanup..." "STEP"
-    $cleanupKey = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\VolumeCaches"
-    $itemsToClean = @(
-        "Temporary Files", "Internet Cache Files", "Recycle Bin", "Thumbnail Cache",
-        "Windows Error Reporting Files", "Active Setup Temp Folders", "BranchCache",
-        "DirectX Shader Cache", "Downloaded Program Files", "Offline Pages",
-        "Old ChkDsk Files", "Previous Installations", "RetailDemo Offline Content",
-        "Service Pack Cleanup", "System error memory dump files",
-        "System error minidump files", "Temporary Setup Files", "Update Cleanup",
-        "User file versions", "Windows Defender", "Windows Upgrade Log Files",
-        "Delivery Optimization Files", "Device Driver Packages", "Language Pack",
-        "Windows ESD installation files"
+    # Services to disable (safe list)
+    $servicesToDisable = @(
+        @{Name = "DiagTrack"; Desc = "Connected User Experiences & Telemetry" },
+        @{Name = "dmwappushservice"; Desc = "WAP Push Message Service" },
+        @{Name = "MapsBroker"; Desc = "Downloaded Maps Manager" },
+        @{Name = "lfsvc"; Desc = "Geolocation Service" },
+        @{Name = "RetailDemo"; Desc = "Retail Demo Service" },
+        @{Name = "WMPNetworkSvc"; Desc = "Windows Media Player Sharing" },
+        @{Name = "wisvc"; Desc = "Windows Insider Service" }
     )
     
-    foreach ($item in $itemsToClean) {
-        $path = "$cleanupKey\$item"
-        if (Test-Path $path) {
-            Set-ItemProperty -Path $path -Name "StateFlags0064" -Value 2 -ErrorAction SilentlyContinue
+    # Only disable SysMain (Superfetch) on HDDs -- it improves performance on SSDs
+    if ($bootDiskType -eq "HDD") {
+        $servicesToDisable += @{Name = "SysMain"; Desc = "Superfetch (HDD detected)" }
+        Write-Host "  Boot drive: HDD detected -- SysMain will be disabled" -ForegroundColor Yellow
+    }
+    else {
+        Write-Host "  Boot drive: $bootDiskType detected -- SysMain kept enabled (beneficial on SSDs)" -ForegroundColor Green
+    }
+    
+    # Services to set to Manual (with smart detection)
+    $servicesToManual = @(
+        @{Name = "WSearch"; Desc = "Windows Search" }
+    )
+    
+    # Detect printers -- only set Spooler to Manual if NO printers are connected
+    $hasPrinters = $false
+    try {
+        $printers = Get-Printer -ErrorAction SilentlyContinue | Where-Object { $_.Name -notlike "Microsoft*" -and $_.Name -notlike "Fax*" -and $_.Name -notlike "OneNote*" }
+        if ($printers -and $printers.Count -gt 0) { $hasPrinters = $true }
+    }
+    catch {}
+    
+    if ($hasPrinters) {
+        Write-Host "  Printers detected -- Print Spooler kept running" -ForegroundColor Green
+    }
+    else {
+        $servicesToManual += @{Name = "Spooler"; Desc = "Print Spooler (no printers detected)" }
+    }
+    
+    # Detect biometric devices -- only set WbioSrvc to Manual if NO biometric hardware
+    $hasBiometric = $false
+    try {
+        $bio = Get-PnpDevice -Class "Biometric" -Status "OK" -ErrorAction SilentlyContinue
+        if ($bio) { $hasBiometric = $true }
+    }
+    catch {}
+    
+    if ($hasBiometric) {
+        Write-Host "  Biometric device detected -- Windows Biometric kept running" -ForegroundColor Green
+    }
+    else {
+        $servicesToManual += @{Name = "WbioSrvc"; Desc = "Windows Biometric (no reader detected)" }
+    }
+    
+    $servicesToManual += @{Name = "TabletInputService"; Desc = "Touch Keyboard" }
+    $servicesToManual += @{Name = "Fax"; Desc = "Fax Service" }
+    
+    # Filter out services that are already in the target state
+    $actualDisable = @()
+    $alreadyDisabled = 0
+    foreach ($svc in $servicesToDisable) {
+        $service = Get-Service -Name $svc.Name -ErrorAction SilentlyContinue
+        if (-not $service) { continue }  # Service doesn't exist on this edition -- skip silently
+        if ($service.StartType -eq "Disabled") {
+            $alreadyDisabled++
+        }
+        else {
+            $actualDisable += @{Name = $svc.Name; Desc = $svc.Desc; Service = $service }
         }
     }
     
-    Start-Process -FilePath "cleanmgr.exe" -ArgumentList "/sagerun:64" -Wait -WindowStyle Hidden
-    Write-Log "Deep system cleanup completed" "SUCCESS"
+    $actualManual = @()
+    $alreadyManual = 0
+    foreach ($svc in $servicesToManual) {
+        $service = Get-Service -Name $svc.Name -ErrorAction SilentlyContinue
+        if (-not $service) { continue }  # Service doesn't exist -- skip silently
+        if ($service.StartType -eq "Manual" -or $service.StartType -eq "Disabled") {
+            $alreadyManual++
+        }
+        else {
+            $actualManual += @{Name = $svc.Name; Desc = $svc.Desc; Service = $service }
+        }
+    }
     
-    # Step 7: SSD Optimization
-    Write-Log "`n[7/7] Optimizing drives..." "STEP"
-    $fixedVolumes = Get-Volume | Where-Object { $_.DriveLetter -and $_.DriveType -eq "Fixed" }
-    foreach ($vol in $fixedVolumes) {
-        try {
-            # Map volume to its actual physical disk to determine media type
-            $diskType = "Unknown"
-            $partition = Get-Partition -DriveLetter $vol.DriveLetter -ErrorAction SilentlyContinue
-            if ($partition) {
-                $physDisk = Get-PhysicalDisk -ErrorAction SilentlyContinue | Where-Object { $_.DeviceId -eq "$($partition.DiskNumber)" }
-                if ($physDisk) { $diskType = $physDisk.MediaType }
+    # Show summary
+    if ($alreadyDisabled -gt 0 -or $alreadyManual -gt 0) {
+        Write-Host "`n  Already optimized: $alreadyDisabled disabled, $alreadyManual manual (skipped)" -ForegroundColor DarkGreen
+    }
+    
+    if ($actualDisable.Count -eq 0 -and $actualManual.Count -eq 0) {
+        Write-Log "All services are already optimized! Nothing to change." "SUCCESS"
+        Wait-KeyPress
+        return
+    }
+    
+    # Show what will be changed
+    if ($actualDisable.Count -gt 0) {
+        Write-Host "`nWill be DISABLED:" -ForegroundColor Yellow
+        foreach ($svc in $actualDisable) {
+            Write-Host "  - $($svc.Desc) ($($svc.Name)) [Currently: $($svc.Service.Status) / $($svc.Service.StartType)]" -ForegroundColor White
+        }
+    }
+    if ($actualManual.Count -gt 0) {
+        Write-Host "`nWill be set to MANUAL:" -ForegroundColor Yellow
+        foreach ($svc in $actualManual) {
+            Write-Host "  - $($svc.Desc) ($($svc.Name)) [Currently: $($svc.Service.StartType)]" -ForegroundColor White
+        }
+    }
+    
+    $optimizedCount = 0
+    
+    # Disable services
+    if ($actualDisable.Count -gt 0) {
+        Write-Host "`nDisabling services:" -ForegroundColor Yellow
+        foreach ($svc in $actualDisable) {
+            try {
+                $service = Get-Service -Name $svc.Name -ErrorAction Stop
+                if ($service.Status -eq "Running") {
+                    Stop-Service $svc.Name -Force -ErrorAction Stop
+                }
+                Set-Service $svc.Name -StartupType Disabled -ErrorAction Stop
+                Write-Log "$($svc.Desc) ($($svc.Name)): Disabled" "SUCCESS"
+                $optimizedCount++
             }
-            
-            if ($diskType -eq "SSD") {
-                Optimize-Volume -DriveLetter $vol.DriveLetter -ReTrim -ErrorAction SilentlyContinue | Out-Null
-                Write-Log "SSD TRIM completed for drive $($vol.DriveLetter):" "SUCCESS"
-            } else {
-                Optimize-Volume -DriveLetter $vol.DriveLetter -Defrag -ErrorAction SilentlyContinue | Out-Null
-                Write-Log "Defrag completed for drive $($vol.DriveLetter):" "SUCCESS"
+            catch {
+                Write-Log "$($svc.Desc): Could not disable - $($_.Exception.Message)" "WARNING"
+                Write-Host "    Tip: Service may be protected by Group Policy or in use by another program" -ForegroundColor Gray
             }
-        } catch {
-            Write-Log "Could not optimize drive $($vol.DriveLetter):" "WARNING"
         }
     }
     
-    # Results
-    Start-Sleep -Seconds 2
-    $afterCleanup = Get-Volume -DriveLetter C
-    $afterFreeGB = [math]::Round($afterCleanup.SizeRemaining / 1GB, 2)
-    $freedSpace = [math]::Round($afterFreeGB - $beforeFreeGB, 2)
+    # Set services to Manual
+    if ($actualManual.Count -gt 0) {
+        Write-Host "`nSetting services to Manual:" -ForegroundColor Yellow
+        foreach ($svc in $actualManual) {
+            try {
+                Set-Service $svc.Name -StartupType Manual -ErrorAction Stop
+                Write-Log "$($svc.Desc) ($($svc.Name)): Set to Manual" "SUCCESS"
+                $optimizedCount++
+            }
+            catch {
+                Write-Log "$($svc.Desc): Could not change - $($_.Exception.Message)" "WARNING"
+            }
+        }
+    }
     
-    Write-Host "`n  Before: $beforeFreeGB GB free" -ForegroundColor Gray
-    Write-Host "  After: $afterFreeGB GB free" -ForegroundColor Gray
-    Write-Host "  Freed: $freedSpace GB" -ForegroundColor $(if($freedSpace -gt 0){"Green"}else{"Yellow"})
+    # Optimize Windows Defender
+    Write-Host "`nOptimizing Windows Defender:" -ForegroundColor Yellow
+    try {
+        Set-MpPreference -ScanAvgCPULoadFactor $Config.DefenderMaxCpuPercent -ErrorAction SilentlyContinue
+        Set-MpPreference -EnableLowCpuPriority $true -ErrorAction SilentlyContinue
+        Set-MpPreference -DisableRealtimeMonitoring $false -ErrorAction SilentlyContinue  # Keep real-time ON for safety
+        Set-MpPreference -ScanScheduleQuickScanTime 12:00:00 -ErrorAction SilentlyContinue  # Scan at noon
+        Write-Log "Defender optimized (low CPU priority, scan at noon)" "SUCCESS"
+        $optimizedCount++
+    }
+    catch {
+        Write-Log "Defender optimization partially failed" "WARNING"
+    }
     
+    Write-Log "`nOptimized $optimizedCount services! ($alreadyDisabled were already optimized)" "SUCCESS"
     Wait-KeyPress
 }
 
 # ============================================
-# 9. FIX NETWORK ISSUES
+# 10. FIX NETWORK ISSUES
 # ============================================
 function Repair-Network {
     Write-Host "`n========================================" -ForegroundColor Cyan
@@ -1723,7 +1909,8 @@ function Repair-Network {
         $latencyProp = if ($beforePing[0].PSObject.Properties['Latency']) { 'Latency' } else { 'ResponseTime' }
         $beforeLatency = [math]::Round(($beforePing | Measure-Object -Property $latencyProp -Average).Average, 2)
         Write-Host "  Current latency: ${beforeLatency}ms" -ForegroundColor Gray
-    } catch {
+    }
+    catch {
         Write-Host "  Cannot reach internet" -ForegroundColor Red
     }
     
@@ -1769,11 +1956,13 @@ function Repair-Network {
         Write-Log "`n[4/7] Resetting firewall rules..." "STEP"
         if (Get-ValidYN "  Are you in an organization or do you have custom firewall rules?") {
             Write-Log "Skipped firewall reset (custom rules preserved)" "WARNING"
-        } else {
+        }
+        else {
             netsh advfirewall reset 2>$null | Out-Null
             Write-Log "Firewall rules reset to default" "SUCCESS"
         }
-    } else {
+    }
+    else {
         Write-Log "`n[2/7] Skipped TCP/IP reset (Safe Mode)" "INFO"
         Write-Log "[3/7] Skipped Winsock reset (Safe Mode)" "INFO"
         Write-Log "[4/7] Skipped Firewall reset (Safe Mode)" "INFO"
@@ -1816,7 +2005,8 @@ function Repair-Network {
     
     if ($sysInfo.PartOfDomain) {
         Write-Log "Domain-joined PC detected. Skipping DNS change to preserve network policies." "WARNING"
-    } else {
+    }
+    else {
         Write-Host "`n  Choose DNS Provider:" -ForegroundColor Yellow
         Write-Host "  1. Google DNS (8.8.8.8) - Fast & reliable" -ForegroundColor White
         Write-Host "  2. Cloudflare DNS (1.1.1.1) - Fastest & private" -ForegroundColor White
@@ -1869,166 +2059,14 @@ function Repair-Network {
         
         if ($beforeLatency) {
             $improvement = $beforeLatency - $afterLatency
-            Write-Host "  Improvement: ${improvement}ms" -ForegroundColor $(if($improvement -gt 0){"Green"}else{"Yellow"})
+            Write-Host "  Improvement: ${improvement}ms" -ForegroundColor $(if ($improvement -gt 0) { "Green" }else { "Yellow" })
         }
-    } catch {
+    }
+    catch {
         Write-Host "  Connection test failed after fixes" -ForegroundColor Red
     }
     
     Write-Log "`nNetwork fixes applied!" "SUCCESS"
-    Wait-KeyPress
-}
-
-# ============================================
-# 10. OPTIMIZE WINDOWS SERVICES
-# ============================================
-function Optimize-Services {
-    Write-Host "`n========================================" -ForegroundColor Cyan
-    Write-Host "OPTIMIZE WINDOWS SERVICES" -ForegroundColor Cyan
-    Write-Host "========================================`n" -ForegroundColor Cyan
-    
-    # Auto-detect boot drive type (SSD vs HDD) with multiple fallbacks
-    $bootDiskType = "Unknown"
-    try {
-        $bootPartition = Get-Partition -DriveLetter C -ErrorAction SilentlyContinue
-        if ($bootPartition) {
-            $bootDisk = Get-PhysicalDisk -ErrorAction SilentlyContinue | Where-Object { $_.DeviceId -eq "$($bootPartition.DiskNumber)" }
-            if ($bootDisk) {
-                $bootDiskType = $bootDisk.MediaType
-                
-                # Fallback 1: If MediaType is Unspecified, check BusType (NVMe = always SSD)
-                if ($bootDiskType -eq "Unspecified" -or [string]::IsNullOrEmpty($bootDiskType)) {
-                    if ($bootDisk.BusType -eq "NVMe") {
-                        $bootDiskType = "SSD"
-                    }
-                }
-                
-                # Fallback 2: Check model name for SSD/NVMe keywords
-                if ($bootDiskType -eq "Unspecified" -or [string]::IsNullOrEmpty($bootDiskType)) {
-                    $modelName = $bootDisk.FriendlyName + " " + $bootDisk.Model
-                    if ($modelName -match "SSD|NVMe|Solid State|M\.2") {
-                        $bootDiskType = "SSD"
-                    } elseif ($modelName -match "HDD|Hard Disk|Seagate Barracuda|WD Blue|Toshiba DT|HGST") {
-                        $bootDiskType = "HDD"
-                    }
-                }
-                
-                # Fallback 3: Check spin speed (0 RPM = SSD, >0 = HDD)
-                if ($bootDiskType -eq "Unspecified" -or [string]::IsNullOrEmpty($bootDiskType)) {
-                    if ($bootDisk.SpindleSpeed -eq 0) {
-                        $bootDiskType = "SSD"
-                    } elseif ($bootDisk.SpindleSpeed -gt 0) {
-                        $bootDiskType = "HDD"
-                    }
-                }
-            }
-        }
-    } catch {}
-    
-    # Services to disable (safe list)
-    $servicesToDisable = @(
-        @{Name="DiagTrack"; Desc="Connected User Experiences & Telemetry"; Action="Disable"},
-        @{Name="dmwappushservice"; Desc="WAP Push Message Service"; Action="Disable"},
-        @{Name="MapsBroker"; Desc="Downloaded Maps Manager"; Action="Disable"},
-        @{Name="lfsvc"; Desc="Geolocation Service"; Action="Disable"},
-        @{Name="RetailDemo"; Desc="Retail Demo Service"; Action="Disable"},
-        @{Name="WMPNetworkSvc"; Desc="Windows Media Player Sharing"; Action="Disable"},
-        @{Name="wisvc"; Desc="Windows Insider Service"; Action="Disable"}
-    )
-    
-    # Only disable SysMain (Superfetch) on HDDs — it improves performance on SSDs
-    if ($bootDiskType -eq "HDD") {
-        $servicesToDisable += @{Name="SysMain"; Desc="Superfetch (HDD detected)"; Action="Disable"}
-        Write-Host "  Boot drive: HDD detected -- SysMain will be disabled" -ForegroundColor Yellow
-    } else {
-        Write-Host "  Boot drive: $bootDiskType detected -- SysMain kept enabled (beneficial on SSDs)" -ForegroundColor Green
-    }
-    
-    # Services to set to Manual
-    $servicesToManual = @(
-        @{Name="WSearch"; Desc="Windows Search"},
-        @{Name="Spooler"; Desc="Print Spooler (set Manual if no printer)"},
-        @{Name="TabletInputService"; Desc="Touch Keyboard (set Manual if no touchscreen)"},
-        @{Name="Fax"; Desc="Fax Service"},
-        @{Name="WbioSrvc"; Desc="Windows Biometric (if no fingerprint reader)"}
-    )
-    
-    $optimizedCount = 0
-    
-    # Show what will be changed and ask for confirmation
-    Write-Host "The following services will be DISABLED:" -ForegroundColor Yellow
-    foreach ($svc in $servicesToDisable) {
-        $service = Get-Service -Name $svc.Name -ErrorAction SilentlyContinue
-        if ($service) {
-            Write-Host "  - $($svc.Desc) ($($svc.Name)) [Currently: $($service.Status) / $($service.StartType)]" -ForegroundColor White
-        }
-    }
-    Write-Host "`nThe following services will be set to MANUAL:" -ForegroundColor Yellow
-    foreach ($svc in $servicesToManual) {
-        $service = Get-Service -Name $svc.Name -ErrorAction SilentlyContinue
-        if ($service -and $service.StartType -ne "Manual") {
-            Write-Host "  - $($svc.Desc) ($($svc.Name)) [Currently: $($service.StartType)]" -ForegroundColor White
-        }
-    }
-    
-    do {
-        Write-Host "`nProceed with these changes? (Y/N): " -ForegroundColor Yellow -NoNewline
-        $confirm = Read-Host
-    } while ($confirm -notmatch '^[YyNn]$')
-    if ($confirm -match '^[Nn]$') {
-        Write-Log "Service optimization cancelled by user" "WARNING"
-        Wait-KeyPress
-        return
-    }
-    
-    Write-Host "`nDisabling unnecessary services:" -ForegroundColor Yellow
-    foreach ($svc in $servicesToDisable) {
-        $service = Get-Service -Name $svc.Name -ErrorAction SilentlyContinue
-        if ($service) {
-            try {
-                if ($service.Status -eq "Running") {
-                    Stop-Service $svc.Name -Force -ErrorAction Stop
-                }
-                Set-Service $svc.Name -StartupType Disabled -ErrorAction Stop
-                Write-Log "$($svc.Desc) ($($svc.Name)): Disabled" "SUCCESS"
-                $optimizedCount++
-            } catch {
-                Write-Log "$($svc.Desc): Could not disable - $($_.Exception.Message)" "WARNING"
-                Write-Host "    Tip: Service may be protected by Group Policy or in use by another program" -ForegroundColor Gray
-            }
-        } else {
-            Write-Host "  $($svc.Desc): Not found (skipped)" -ForegroundColor Gray
-        }
-    }
-    
-    Write-Host "`nSetting services to Manual:" -ForegroundColor Yellow
-    foreach ($svc in $servicesToManual) {
-        $service = Get-Service -Name $svc.Name -ErrorAction SilentlyContinue
-        if ($service -and $service.StartType -ne "Manual") {
-            try {
-                Set-Service $svc.Name -StartupType Manual -ErrorAction Stop
-                Write-Log "$($svc.Desc) ($($svc.Name)): Set to Manual" "SUCCESS"
-                $optimizedCount++
-            } catch {
-                Write-Log "$($svc.Desc): Could not change - $($_.Exception.Message)" "WARNING"
-            }
-        }
-    }
-    
-    # Optimize Windows Defender
-    Write-Host "`nOptimizing Windows Defender:" -ForegroundColor Yellow
-    try {
-        Set-MpPreference -ScanAvgCPULoadFactor $Config.DefenderMaxCpuPercent -ErrorAction SilentlyContinue
-        Set-MpPreference -EnableLowCpuPriority $true -ErrorAction SilentlyContinue
-        Set-MpPreference -DisableRealtimeMonitoring $false -ErrorAction SilentlyContinue  # Keep real-time ON for safety
-        Set-MpPreference -ScanScheduleQuickScanTime 12:00:00 -ErrorAction SilentlyContinue  # Scan at noon
-        Write-Log "Defender optimized (low CPU priority, scan at noon)" "SUCCESS"
-        $optimizedCount++
-    } catch {
-        Write-Log "Defender optimization partially failed" "WARNING"
-    }
-    
-    Write-Log "`nOptimized $optimizedCount services!" "SUCCESS"
     Wait-KeyPress
 }
 
@@ -2045,9 +2083,9 @@ function Set-PrivacyShield {
     # Disable Telemetry
     Write-Log "[1/8] Disabling Telemetry..." "STEP"
     $telemetrySettings = @(
-        @{Path="HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection"; Name="AllowTelemetry"; Value=0},
-        @{Path="HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection"; Name="AllowTelemetry"; Value=0},
-        @{Path="HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection"; Name="DoNotShowFeedbackNotifications"; Value=1}
+        @{Path = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection"; Name = "AllowTelemetry"; Value = 0 },
+        @{Path = "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\DataCollection"; Name = "AllowTelemetry"; Value = 0 },
+        @{Path = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\DataCollection"; Name = "DoNotShowFeedbackNotifications"; Value = 1 }
     )
     foreach ($setting in $telemetrySettings) {
         if (!(Test-Path $setting.Path)) { New-Item -Path $setting.Path -Force | Out-Null }
@@ -2151,7 +2189,8 @@ function Invoke-WindowsUpdateManager {
     $wuService = Get-Service wuauserv -ErrorAction SilentlyContinue
     if ($wuService) {
         Write-Host "  Windows Update Service: $($wuService.Status) / $($wuService.StartType)" -ForegroundColor White
-    } else {
+    }
+    else {
         Write-Host "  Windows Update Service: Not found" -ForegroundColor Red
     }
     
@@ -2163,26 +2202,30 @@ function Invoke-WindowsUpdateManager {
             $expiryDate = [datetime]::Parse($pauseExpiry)
             if ($expiryDate -gt (Get-Date)) {
                 Write-Host "  Update Status: PAUSED until $($expiryDate.ToString('yyyy-MM-dd'))" -ForegroundColor Yellow
-            } else {
+            }
+            else {
                 Write-Host "  Update Status: Active (not paused)" -ForegroundColor Green
             }
-        } else {
+        }
+        else {
             Write-Host "  Update Status: Active (not paused)" -ForegroundColor Green
         }
-    } catch {
+    }
+    catch {
         Write-Host "  Update Status: Active (not paused)" -ForegroundColor Green
     }
     
     # Show current active hours
     try {
         $activeStart = Get-ItemPropertyValue -Path $regPath -Name "ActiveHoursStart" -ErrorAction SilentlyContinue
-        $activeEnd   = Get-ItemPropertyValue -Path $regPath -Name "ActiveHoursEnd" -ErrorAction SilentlyContinue
-        if ($activeStart -ne $null -and $activeEnd -ne $null) {
+        $activeEnd = Get-ItemPropertyValue -Path $regPath -Name "ActiveHoursEnd" -ErrorAction SilentlyContinue
+        if ($null -ne $activeStart -and $null -ne $activeEnd) {
             $startAmPm = if ($activeStart -lt 12) { "$($activeStart) AM" } elseif ($activeStart -eq 12) { "12 PM" } else { "$($activeStart - 12) PM" }
-            $endAmPm   = if ($activeEnd -lt 12) { "$($activeEnd) AM" } elseif ($activeEnd -eq 12) { "12 PM" } else { "$($activeEnd - 12) PM" }
+            $endAmPm = if ($activeEnd -lt 12) { "$($activeEnd) AM" } elseif ($activeEnd -eq 12) { "12 PM" } else { "$($activeEnd - 12) PM" }
             Write-Host "  Active Hours: $startAmPm - $endAmPm (no restarts during these hours)" -ForegroundColor Gray
         }
-    } catch {}
+    }
+    catch {}
     
     # Check pending updates
     Write-Host "`n  Searching for pending updates (this may take a moment)..." -ForegroundColor Gray
@@ -2194,13 +2237,15 @@ function Invoke-WindowsUpdateManager {
         if ($searchResult.Updates.Count -gt 0) {
             Write-Host "  Pending Updates ($($searchResult.Updates.Count)):" -ForegroundColor Yellow
             foreach ($update in $searchResult.Updates) {
-                $size = [math]::Round($update.MaxDownloadSize/1MB, 1)
+                $size = [math]::Round($update.MaxDownloadSize / 1MB, 1)
                 Write-Host "    - $($update.Title) [$size MB]" -ForegroundColor White
             }
-        } else {
+        }
+        else {
             Write-Host "  No pending updates. System is up to date!" -ForegroundColor Green
         }
-    } catch {
+    }
+    catch {
         Write-Host "  Could not check for updates" -ForegroundColor Gray
         Write-Host "  Tip: Windows Update service may be paused or disabled" -ForegroundColor DarkGray
         Write-Host "  Fix: Run 'services.msc' and ensure 'Windows Update' is running" -ForegroundColor DarkGray
@@ -2212,7 +2257,8 @@ function Invoke-WindowsUpdateManager {
         if ($lastUpdate -and $lastUpdate.InstalledOn) {
             Write-Host "  Last Update Installed: $($lastUpdate.InstalledOn.ToString('yyyy-MM-dd')) - $($lastUpdate.HotFixID)" -ForegroundColor Gray
         }
-    } catch {}
+    }
+    catch {}
     
     # Options
     Write-Host "`n  Options:" -ForegroundColor Yellow
@@ -2239,7 +2285,8 @@ function Invoke-WindowsUpdateManager {
             $pauseDaysInt = 0
             if (-not [int]::TryParse($pauseDays, [ref]$pauseDaysInt) -or $pauseDaysInt -lt 1 -or $pauseDaysInt -gt $Config.MaxUpdatePauseDays) {
                 Write-Log "Invalid input. Please enter a number between 1 and $($Config.MaxUpdatePauseDays)." "WARNING"
-            } else {
+            }
+            else {
                 Write-Log "Pausing updates for $pauseDaysInt days..." "STEP"
                 $pauseDate = (Get-Date).AddDays($pauseDaysInt).ToString("yyyy-MM-ddTHH:mm:ssZ")
                 Set-ItemProperty -Path $regPath -Name "PauseUpdatesExpiryTime" -Value $pauseDate -ErrorAction SilentlyContinue
@@ -2259,7 +2306,8 @@ function Invoke-WindowsUpdateManager {
                 Remove-ItemProperty -Path $regPath -Name "PauseQualityUpdatesStartTime" -ErrorAction SilentlyContinue
                 Remove-ItemProperty -Path $regPath -Name "PauseQualityUpdatesEndTime" -ErrorAction SilentlyContinue
                 Write-Log "Windows Updates resumed! Updates will check automatically." "SUCCESS"
-            } catch {
+            }
+            catch {
                 Write-Log "Could not resume updates: $($_.Exception.Message)" "WARNING"
             }
         }
@@ -2277,8 +2325,8 @@ function Invoke-WindowsUpdateManager {
             $endHour = $null
             
             switch ($hoursChoice) {
-                "1" { $startHour = 6;  $endHour = 22 }
-                "2" { $startHour = 8;  $endHour = 23 }
+                "1" { $startHour = 6; $endHour = 22 }
+                "2" { $startHour = 8; $endHour = 23 }
                 "3" { $startHour = 12; $endHour = 4 }
                 "4" {
                     Write-Host "  Start hour (0-23, e.g. 8 for 8 AM): " -ForegroundColor Yellow -NoNewline
@@ -2290,7 +2338,8 @@ function Invoke-WindowsUpdateManager {
                     if ([int]::TryParse($startInput, [ref]$s) -and [int]::TryParse($endInput, [ref]$e) -and $s -ge 0 -and $s -le 23 -and $e -ge 0 -and $e -le 23 -and $s -ne $e) {
                         $startHour = $s
                         $endHour = $e
-                    } else {
+                    }
+                    else {
                         Write-Log "Invalid hours. Enter values 0-23, start and end must be different." "WARNING"
                     }
                 }
@@ -2299,11 +2348,11 @@ function Invoke-WindowsUpdateManager {
                 }
             }
             
-            if ($startHour -ne $null -and $endHour -ne $null) {
+            if ($null -ne $startHour -and $null -ne $endHour) {
                 Set-ItemProperty -Path $regPath -Name "ActiveHoursStart" -Value $startHour -ErrorAction SilentlyContinue
                 Set-ItemProperty -Path $regPath -Name "ActiveHoursEnd" -Value $endHour -ErrorAction SilentlyContinue
                 $startAmPm = if ($startHour -lt 12) { "$($startHour) AM" } elseif ($startHour -eq 12) { "12 PM" } else { "$($startHour - 12) PM" }
-                $endAmPm   = if ($endHour -lt 12) { "$($endHour) AM" } elseif ($endHour -eq 12) { "12 PM" } else { "$($endHour - 12) PM" }
+                $endAmPm = if ($endHour -lt 12) { "$($endHour) AM" } elseif ($endHour -eq 12) { "12 PM" } else { "$($endHour - 12) PM" }
                 Write-Log "Active hours set: $startAmPm - $endAmPm" "SUCCESS"
             }
         }
@@ -2328,7 +2377,8 @@ function Invoke-WindowsUpdateManager {
             $wuCheck = Get-Service wuauserv -ErrorAction SilentlyContinue
             if ($wuCheck -and $wuCheck.Status -eq "Running") {
                 Write-Log "Update cache cleared and services restarted successfully." "SUCCESS"
-            } else {
+            }
+            else {
                 Write-Log "Update cache cleared but Windows Update service may need a restart to recover." "WARNING"
                 Write-Host "  Tip: If updates are still stuck, restart your PC and try again." -ForegroundColor Gray
             }
@@ -2345,763 +2395,321 @@ function Invoke-WindowsUpdateManager {
 }
 
 # ============================================
-# 13. REPAIR WINDOWS (SFC + DISM)
+# 13. DEEP DISK CLEAN
 # ============================================
-function Repair-Windows {
-    Write-Host "`n========================================" -ForegroundColor Cyan
-    Write-Host "REPAIR WINDOWS SYSTEM FILES" -ForegroundColor Cyan
-    Write-Host "========================================`n" -ForegroundColor Cyan
-    
-    Write-Host "  Choose a repair option:" -ForegroundColor Yellow
-    Write-Host ""
-    Write-Host "  1. Full Repair (DISM + SFC + Component Cleanup)" -ForegroundColor White
-    Write-Host "     Best for: Corrupted Windows, update failures, blue screens" -ForegroundColor DarkGray
-    Write-Host "     Time: 15-30 minutes" -ForegroundColor DarkGray
-    Write-Host ""
-    Write-Host "  2. Quick Scan (SFC only)" -ForegroundColor White
-    Write-Host "     Best for: Minor file corruption, quick check" -ForegroundColor DarkGray
-    Write-Host "     Time: 5-15 minutes" -ForegroundColor DarkGray
-    Write-Host ""
-    Write-Host "  3. Image Repair (DISM only)" -ForegroundColor White
-    Write-Host "     Best for: When SFC reports it cannot fix files" -ForegroundColor DarkGray
-    Write-Host "     Time: 10-20 minutes" -ForegroundColor DarkGray
-    Write-Host ""
-    Write-Host "  4. Disk Check (schedule chkdsk on next restart)" -ForegroundColor White
-    Write-Host "     Best for: Disk errors, bad sectors, file system corruption" -ForegroundColor DarkGray
-    Write-Host ""
-    Write-Host "  5. View Recent System Errors" -ForegroundColor White
-    Write-Host "     Best for: Diagnosing crashes and failures" -ForegroundColor DarkGray
-    Write-Host ""
-    Write-Host "  0. Back to menu" -ForegroundColor White
-    Write-Host "`n  Choice (0-5): " -ForegroundColor Yellow -NoNewline
-    $repairChoice = (Read-Host).Trim()
-    
-    $ranRepair = $false
-    
-    switch ($repairChoice) {
-        "1" {
-            Write-Host "`n  This will run DISM + SFC + Component Cleanup." -ForegroundColor Yellow
-            Write-Host "  Estimated time: 15-30 minutes." -ForegroundColor Gray
-            if (-not (Get-ValidYN "`n  Continue?")) { return }
-            
-            # DISM
-            Write-Log "`n[1/3] Running DISM (Repair Windows Image)..." "STEP"
-            Write-Host "  This may take 10-15 minutes. Progress will show below...`n" -ForegroundColor Gray
-            
-            $dismResult = Start-Process -FilePath "dism.exe" -ArgumentList "/Online /Cleanup-Image /RestoreHealth" -Wait -PassThru -NoNewWindow
-            
-            if ($dismResult.ExitCode -eq 0) {
-                Write-Log "DISM repair completed successfully" "SUCCESS"
-            } else {
-                Write-Log "DISM completed with exit code: $($dismResult.ExitCode)" "WARNING"
-                Write-Host "    Tip: If DISM failed, ensure you have an internet connection" -ForegroundColor Gray
-                Write-Host "    Alternative: Use a Windows ISO as source:" -ForegroundColor Gray
-                Write-Host "    DISM /Online /Cleanup-Image /RestoreHealth /Source:WIM:D:\sources\install.wim:1" -ForegroundColor DarkGray
-            }
-            
-            # SFC
-            Write-Log "`n[2/3] Running SFC (System File Checker)..." "STEP"
-            Write-Host "  This may take 5-15 minutes...`n" -ForegroundColor Gray
-            
-            $sfcResult = Start-Process -FilePath "sfc.exe" -ArgumentList "/scannow" -Wait -PassThru -NoNewWindow
-            
-            if ($sfcResult.ExitCode -eq 0) {
-                Write-Log "SFC scan completed successfully" "SUCCESS"
-            } else {
-                Write-Log "SFC completed with exit code: $($sfcResult.ExitCode)" "WARNING"
-                Write-Host "    Tip: If SFC found issues it couldn't fix, re-run DISM first, then SFC again" -ForegroundColor Gray
-                Write-Host "    Check: C:\Windows\Logs\CBS\CBS.log for detailed SFC results" -ForegroundColor Gray
-            }
-            
-            # Component Store Cleanup
-            Write-Log "`n[3/3] Analyzing Component Store..." "STEP"
-            $analyzeResult = Start-Process -FilePath "dism.exe" -ArgumentList "/Online /Cleanup-Image /AnalyzeComponentStore" -Wait -PassThru -NoNewWindow
-            
-            if ($analyzeResult.ExitCode -eq 0) {
-                Write-Log "Component store analysis complete" "SUCCESS"
-                
-                if (Get-ValidYN "`n  Clean up component store? (frees disk space)") {
-                    $cleanResult = Start-Process -FilePath "dism.exe" -ArgumentList "/Online /Cleanup-Image /StartComponentCleanup /ResetBase" -Wait -PassThru -NoNewWindow
-                    if ($cleanResult.ExitCode -eq 0) {
-                        Write-Log "Component store cleaned up successfully" "SUCCESS"
-                    } else {
-                        Write-Log "Component cleanup finished with exit code: $($cleanResult.ExitCode)" "WARNING"
-                    }
-                }
-            } else {
-                Write-Log "Component store analysis failed (exit code: $($analyzeResult.ExitCode))" "WARNING"
-            }
-            
-            $ranRepair = $true
-        }
-        "2" {
-            Write-Host "`n  Running SFC (System File Checker)..." -ForegroundColor Yellow
-            Write-Host "  This may take 5-15 minutes. Progress will show below...`n" -ForegroundColor Gray
-            
-            $sfcResult = Start-Process -FilePath "sfc.exe" -ArgumentList "/scannow" -Wait -PassThru -NoNewWindow
-            
-            if ($sfcResult.ExitCode -eq 0) {
-                Write-Log "SFC scan completed successfully -- no integrity violations found" "SUCCESS"
-            } else {
-                Write-Log "SFC completed with exit code: $($sfcResult.ExitCode)" "WARNING"
-                Write-Host "    Tip: If SFC found issues, run Option 1 (Full Repair) to fix the image first" -ForegroundColor Gray
-                Write-Host "    Check: C:\Windows\Logs\CBS\CBS.log for detailed results" -ForegroundColor Gray
-            }
-            
-            $ranRepair = $true
-        }
-        "3" {
-            Write-Host "`n  Running DISM (Repair Windows Image)..." -ForegroundColor Yellow
-            Write-Host "  This may take 10-20 minutes. Progress will show below...`n" -ForegroundColor Gray
-            
-            $dismResult = Start-Process -FilePath "dism.exe" -ArgumentList "/Online /Cleanup-Image /RestoreHealth" -Wait -PassThru -NoNewWindow
-            
-            if ($dismResult.ExitCode -eq 0) {
-                Write-Log "DISM image repair completed successfully" "SUCCESS"
-                Write-Host "  Tip: Now run SFC (Option 2) to verify system files are intact" -ForegroundColor Gray
-            } else {
-                Write-Log "DISM completed with exit code: $($dismResult.ExitCode)" "WARNING"
-                Write-Host "    Tip: Ensure internet connection is active for Windows Update source" -ForegroundColor Gray
-            }
-            
-            $ranRepair = $true
-        }
-        "4" {
-            Write-Host "`n  This will schedule a disk check on the next restart." -ForegroundColor Yellow
-            Write-Host "  The check runs BEFORE Windows boots and may take 30-60 minutes." -ForegroundColor Gray
-            
-            if (Get-ValidYN "`n  Schedule disk check on C: for next restart?") {
-                try {
-                    $chkdskResult = & cmd /c "echo Y | chkdsk C: /F /R /X" 2>&1
-                    # chkdsk on the system drive always says "cannot lock" and schedules for reboot
-                    Write-Log "Disk check scheduled for next restart" "SUCCESS"
-                    Write-Host "  The check will run automatically on your next restart." -ForegroundColor Green
-                    Write-Host "  Do NOT interrupt the check -- let it complete fully." -ForegroundColor Yellow
-                    $ranRepair = $true
-                } catch {
-                    Write-Log "Could not schedule disk check: $($_.Exception.Message)" "WARNING"
-                }
-            }
-        }
-        "5" {
-            Write-Host "`n  Recent System Errors (last 24 hours):" -ForegroundColor Yellow
-            Write-Host "  (These are pre-existing errors, not caused by this tool)`n" -ForegroundColor DarkGray
-            try {
-                $errors = Get-WinEvent -FilterHashtable @{
-                    LogName = 'System'
-                    Level = 2  # Error
-                    StartTime = (Get-Date).AddHours(-24)
-                } -MaxEvents 10 -ErrorAction SilentlyContinue
-                
-                if ($errors) {
-                    foreach ($evt in $errors) {
-                        $msg = if ($evt.Message) { $evt.Message.Substring(0, [Math]::Min(100, $evt.Message.Length)) } else { "(No message)" }
-                        $timeStr = $evt.TimeCreated.ToString('HH:mm')
-                        $source = $evt.ProviderName
-                        Write-Host "  [$timeStr] [$source]" -ForegroundColor Red -NoNewline
-                        Write-Host " $msg" -ForegroundColor White
-                    }
-                    Write-Host "`n  Total: $($errors.Count) error(s) in the last 24 hours" -ForegroundColor Gray
-                } else {
-                    Write-Host "  No system errors in the last 24 hours!" -ForegroundColor Green
-                }
-            } catch {
-                Write-Host "  Could not read event logs" -ForegroundColor Gray
-                Write-Host "  Tip: Event Log service may be disabled or logs may be cleared" -ForegroundColor DarkGray
-            }
-        }
-        "0" {
-            return
-        }
-        default {
-            Write-Host "  Invalid choice." -ForegroundColor Red
-        }
-    }
-    
-    # Offer restart if a repair was performed
-    if ($ranRepair) {
-        Write-Log "`nWindows repair process complete!" "SUCCESS"
-        Write-Host ""
-        if (Get-ValidYN "  A restart is recommended after repairs. Restart now?") {
-            Write-Host "`n  Restarting in 10 seconds... Press Ctrl+C to cancel" -ForegroundColor Yellow
-            for ($i = 10; $i -gt 0; $i--) {
-                Write-Host "`r  Restarting in $i seconds...  " -ForegroundColor Yellow -NoNewline
-                Start-Sleep -Seconds 1
-            }
-            Restart-Computer -Force
-        }
-    }
-    
-    Wait-KeyPress
-}
-
-# ============================================
-# 14. CREATE RESTORE POINT
-# ============================================
-function New-RestorePoint {
-    Write-Host "`n========================================" -ForegroundColor Cyan
-    Write-Host "CREATE SYSTEM RESTORE POINT" -ForegroundColor Cyan
-    Write-Host "========================================`n" -ForegroundColor Cyan
-    
-    # Show existing restore points
-    Write-Log "Existing restore points:" "STEP"
-    try {
-        $restorePoints = Get-ComputerRestorePoint -ErrorAction SilentlyContinue
-        if ($restorePoints) {
-            foreach ($rp in $restorePoints | Select-Object -Last 5) {
-                Write-Host "  [$($rp.SequenceNumber)] $($rp.Description) - $($rp.CreationTime)" -ForegroundColor Gray
-            }
-        } else {
-            Write-Host "  No existing restore points found" -ForegroundColor Yellow
-        }
-    } catch {
-        Write-Host "  Could not retrieve restore points" -ForegroundColor Gray
-    }
-    
-    if (Get-ValidYN "`nCreate new restore point?") {
-        Write-Host "Enter description (or press Enter for default): " -ForegroundColor Yellow -NoNewline
-        $desc = Read-Host
-        if ([string]::IsNullOrEmpty($desc)) {
-            $desc = "Manual Restore Point - $(Get-Date -Format 'yyyy-MM-dd HH:mm')"
-        }
-        
-        New-SafeRestorePoint -Description $desc
-    }
-    
-    Wait-KeyPress
-}
-
-# ============================================
-# 15. CLEAN OLD RESTORE POINTS
-# ============================================
-function Remove-OldRestorePoints {
-    Write-Host "`n========================================" -ForegroundColor Cyan
-    Write-Host "CLEAN OLD RESTORE POINTS" -ForegroundColor Cyan
-    Write-Host "========================================`n" -ForegroundColor Cyan
-    
-    Write-Log "Scanning for restore points..." "STEP"
-    
-    try {
-        # Using WMI ShadowCopy to manage individual deletions
-        # Force array with @() — single results from Get-CimInstance aren't arrays
-        $shadows = @(Get-CimInstance Win32_ShadowCopy -ErrorAction Stop | Sort-Object InstallDate)
-        $count = $shadows.Count
-        
-        $keepCount = $Config.RestorePointsToKeep   # Defined in $Config at top of script
-        
-        if ($count -eq 0) {
-            Write-Host "  No restore points found." -ForegroundColor Yellow
-        } elseif ($count -le $keepCount) {
-            Write-Host "  Only $count restore point(s) exist. Keeping all for safety (minimum $keepCount)." -ForegroundColor Yellow
-        } else {
-            $deleteCount = $count - $keepCount
-            Write-Host "  Found $count restore points." -ForegroundColor White
-            Write-Host "  Will keep the $keepCount newest and delete $deleteCount old point(s).`n" -ForegroundColor Yellow
-            
-            # Show what will be deleted vs kept
-            $toDelete = $shadows[0..($count - $keepCount - 1)]
-            $toKeep   = $shadows[($count - $keepCount)..($count - 1)]
-            
-            foreach ($s in $toDelete) {
-                Write-Host "    [DELETE] $($s.InstallDate)" -ForegroundColor Red
-            }
-            foreach ($s in $toKeep) {
-                Write-Host "    [KEEP]   $($s.InstallDate)" -ForegroundColor Green
-            }
-            
-            if (-not (Get-ValidYN "`n  Proceed with deletion?")) {
-                Write-Log "Restore point cleanup cancelled by user" "WARNING"
-                Wait-KeyPress
-                return
-            }
-            
-            $deletedOk = 0
-            foreach ($shadow in $toDelete) {
-                try {
-                    Write-Host "  Deleting backup from $($shadow.InstallDate)..." -ForegroundColor Gray
-                    # Use vssadmin — the reliable method (Invoke-CimMethod Delete is not supported on Win32_ShadowCopy)
-                    $shadowId = $shadow.ID
-                    $result = & vssadmin delete shadows /Shadow="$shadowId" /Quiet 2>&1
-                    if ($LASTEXITCODE -eq 0) {
-                        $deletedOk++
-                    } else {
-                        Write-Log "Could not delete shadow copy: $result" "WARNING"
-                    }
-                } catch {
-                    Write-Log "Could not delete shadow copy from $($shadow.InstallDate): $($_.Exception.Message)" "WARNING"
-                }
-            }
-            
-            Write-Log "Deleted $deletedOk of $deleteCount old restore points. Kept the $keepCount newest." "SUCCESS"
-        }
-    } catch {
-        Write-Log "Error managing restore points: $($_.Exception.Message)" "ERROR"
-    }
-    
-    Wait-KeyPress
-}
-
-# ============================================
-# 16. DELETE OLD LOG FILES
-# ============================================
-function Remove-OldLogs {
+function Invoke-DiskCleanup {
     param([switch]$Auto)
     
     Write-Host "`n========================================" -ForegroundColor Cyan
-    Write-Host "CLEANUP SCRIPT LOGS & REPORTS" -ForegroundColor Cyan
+    Write-Host "DEEP DISK CLEANUP" -ForegroundColor Cyan
     Write-Host "========================================`n" -ForegroundColor Cyan
     
-    $patterns = @("Optimizer_Log_*.txt", "System_Health_*.txt", "battery-report.html")
-    $days = $Config.LogCleanupDays
-    
-    # Check for files
-    $foundFiles = Get-ChildItem -Path $desktopPath -Include $patterns -File -Recurse -ErrorAction SilentlyContinue
-    
-    if ($foundFiles.Count -eq 0) {
-        Write-Host "  No script logs or reports found on Desktop." -ForegroundColor Green
-        return
-    }
-    
-    Write-Host "  Found $($foundFiles.Count) files generated by WinOptimizer." -ForegroundColor White
-    
-    $toDelete = @()
+    $beforeCleanup = Get-Volume -DriveLetter C -ErrorAction SilentlyContinue
+    $beforeFreeGB = [math]::Round($beforeCleanup.SizeRemaining / 1GB, 2)
+    Write-Host "  Current free space on C: $beforeFreeGB GB`n" -ForegroundColor Gray
     
     if ($Auto) {
-        # Auto mode: silently delete files older than configured days
-        $limitDate = (Get-Date).AddDays(-$days)
-        $toDelete = $foundFiles | Where-Object { $_.LastWriteTime -lt $limitDate }
-        if ($toDelete.Count -gt 0) {
-            Write-Log "Auto-cleaning files older than $days days..." "STEP"
-        }
-    } else {
-        # Interactive mode: ask user what to do
-        Write-Host "`n  What would you like to do?" -ForegroundColor Yellow
-        Write-Host "    1. Delete OLD files only (older than $days days)" -ForegroundColor White
-        Write-Host "    2. Delete ALL files (Clear history)" -ForegroundColor White
-        Write-Host "    0. Cancel" -ForegroundColor Gray
-        
-        Write-Host "`n  Choice: " -ForegroundColor Yellow -NoNewline
-        $choice = (Read-Host).Trim()
-        
-        switch ($choice) {
-            "1" {
-                $limitDate = (Get-Date).AddDays(-$days)
-                $toDelete = $foundFiles | Where-Object { $_.LastWriteTime -lt $limitDate }
-                if ($toDelete.Count -gt 0) {
-                     Write-Log "Cleaning files older than $days days..." "STEP"
-                }
-            }
-            "2" {
-                $toDelete = $foundFiles
-                Write-Log "Cleaning ALL script files..." "STEP"
-            }
-            default {
-                Write-Host "  Cancelled." -ForegroundColor Gray
-                return
-            }
-        }
+        # Auto mode: skip prompts, skip Recycle Bin (safe default)
+        $cleanRecycleBin = $false
     }
-    
-    if ($toDelete.Count -gt 0) {
-        foreach ($file in $toDelete) {
-            # Skip the file currently being written to
-            if ($file.FullName -eq $logFile) {
-                Write-Host "    Skipping active log file: $($file.Name)" -ForegroundColor Gray
-                continue
-            }
-            
-            try {
-                Remove-Item -Path $file.FullName -Force -ErrorAction Stop
-                Write-Host "    Deleted: $($file.Name)" -ForegroundColor DarkGray
-            } catch {
-                Write-Host "    Failed to delete: $($file.Name)" -ForegroundColor Red
-            }
-        }
-        Write-Host "`n  Cleanup complete. Removed $($toDelete.Count) files." -ForegroundColor Green
-    } else {
-        Write-Host "  No matching files found to delete." -ForegroundColor Green
-    }
-    
-    Wait-KeyPress
-}
-
-# ============================================
-# 17. RUN ALL OPTIMIZATIONS
-# ============================================
-function Invoke-AllOptimizations {
-    Write-Host "`n========================================" -ForegroundColor Cyan
-    Write-Host "RUN ALL OPTIMIZATIONS (SAFE MODE)" -ForegroundColor Cyan
-    Write-Host "========================================`n" -ForegroundColor Cyan
-    
-    Write-Host "This will run the following optimizations:" -ForegroundColor Yellow
-    Write-Host ""
-    Write-Host "  STEP 1: Create System Restore Point (Safety net)" -ForegroundColor White
-    Write-Host "  STEP 2: Optimize Windows Services" -ForegroundColor White
-    Write-Host "       -> Disable 7 telemetry/bloat services (DiagTrack, MapsBroker, etc.)" -ForegroundColor DarkGray
-    Write-Host "       -> Set 5 optional services to Manual (Print Spooler, Fax, etc.)" -ForegroundColor DarkGray
-    Write-Host "  STEP 3: Optimize Startup Programs" -ForegroundColor White
-    Write-Host "       -> Scan registry for non-essential startup entries" -ForegroundColor DarkGray
-    Write-Host "       -> Disable matching scheduled tasks (with protected whitelist)" -ForegroundColor DarkGray
-    Write-Host "  STEP 4: Optimize RAM & Performance" -ForegroundColor White
-    Write-Host "       -> Trim idle process working sets (skip 22 protected processes)" -ForegroundColor DarkGray
-    Write-Host "       -> Disable animations, set High Performance power plan" -ForegroundColor DarkGray
-    Write-Host "  STEP 5: Privacy & Telemetry Shield" -ForegroundColor White
-    Write-Host "       -> Apply 15+ privacy registry settings (telemetry, ad ID, location)" -ForegroundColor DarkGray
-    Write-Host "  STEP 6: Deep Disk Cleanup" -ForegroundColor White
-    Write-Host "       -> Clear temp files, browser caches (12 browsers), Windows Update cache" -ForegroundColor DarkGray
-    Write-Host "       -> Run CleanMgr + SSD TRIM / HDD Defrag" -ForegroundColor DarkGray
-    Write-Host "  STEP 7: Fix Network Issues" -ForegroundColor White
-    Write-Host "       -> Flush DNS, optimize TCP, configure DNS provider" -ForegroundColor DarkGray
-    Write-Host "       -> VPN/VM adapters auto-detected and protected" -ForegroundColor DarkGray
-    Write-Host "  STEP 8: Cleanup Old Logs & Reports" -ForegroundColor White
-    Write-Host "       -> Auto-delete script logs/reports older than $($Config.LogCleanupDays) days" -ForegroundColor DarkGray
-    Write-Host ""
-    Write-Host "Estimated time: 5-15 minutes" -ForegroundColor Gray
-    Write-Host ""
-    do {
-        Write-Host "Continue? (Y/N): " -ForegroundColor Yellow -NoNewline
-        $response = Read-Host
-    } while ($response -notmatch '^[YyNn]$')
-    
-    if ($response -match '^[Nn]$') {
-        return
-    }
-    
-    $totalSteps = 8
-    $startTime = Get-Date
-    
-    Write-Host "`n========================================" -ForegroundColor Green
-    Write-Host "STARTING FULL OPTIMIZATION..." -ForegroundColor Green
-    Write-Host "========================================`n" -ForegroundColor Green
-    
-    $script:skipPause = $true
-    $script:LoggingEnabled = $true
-    
-    $stepNames = @(
-        "Creating Restore Point",
-        "Optimizing Services",
-        "Optimizing Startup",
-        "Optimizing RAM & Performance",
-        "Applying Privacy Shield",
-        "Deep Cleaning Disk",
-        "Fixing Network",
-        "Cleaning Old Logs & Reports"
-    )
-    
-    # Step functions with error resilience
-    $stepFunctions = @(
-        { New-SafeRestorePoint },
-        { Optimize-Services },
-        { Optimize-Startup },
-        { Optimize-RAM },
-        { Set-PrivacyShield },
-        { Invoke-DiskCleanup },
-        { Repair-Network },
-        { Remove-OldLogs -Auto }
-    )
-    
-    $completedSteps = 0
-    $failedSteps = @()
-    
-    for ($s = 0; $s -lt $totalSteps; $s++) {
-        $stepNum = $s + 1
-        Write-Host "`n  >>> [$stepNum/$totalSteps] $($stepNames[$s])..." -ForegroundColor Cyan
-        
-        try {
-            & $stepFunctions[$s]
-            $completedSteps++
-        } catch {
-            Write-Log "Step $stepNum ($($stepNames[$s])) failed: $($_.Exception.Message)" "ERROR"
-            $failedSteps += $stepNames[$s]
-            if ($stepNum -lt $totalSteps) {
-                if (-not (Get-ValidYN "  Step failed. Continue with remaining steps?")) {
-                    Write-Log "Optimization aborted by user after step $stepNum failure" "WARNING"
-                    break
-                }
-            }
-        }
-    }
-    
-    
-    $endTime = Get-Date
-    $duration = $endTime - $startTime
-    $script:skipPause = $false
-    $script:LoggingEnabled = $false
-    
-    Write-Host "`n========================================" -ForegroundColor Green
-    Write-Host "ALL OPTIMIZATIONS COMPLETE!" -ForegroundColor Green
-    Write-Host "========================================" -ForegroundColor Green
-    Write-Host ""
-    Write-Host "  Completed: $completedSteps/$totalSteps steps" -ForegroundColor Gray
-    if ($failedSteps.Count -gt 0) {
-        Write-Host "  Failed: $($failedSteps -join ', ')" -ForegroundColor Red
-    }
-    Write-Host "  Duration: $($duration.Minutes) minutes $($duration.Seconds) seconds" -ForegroundColor Gray
-    Write-Host "  Log file: $logFile" -ForegroundColor Gray
-    Write-Host ""
-    Write-Host "IMPORTANT: Restart your laptop for all changes to take effect!" -ForegroundColor Red
-    Write-Host ""
-    Write-Host "Restart now? (Y/N): " -ForegroundColor Yellow -NoNewline
-    do {
-        $restart = Read-Host
-        if ($restart -notmatch '^[YyNn]$') {
-            Write-Host "  Please enter Y or N: " -ForegroundColor Yellow -NoNewline
-        }
-    } while ($restart -notmatch '^[YyNn]$')
-    
-    if ($restart -match '^[Yy]$') {
-        Write-Host "`nRestarting in 15 seconds... Press Ctrl+C to cancel" -ForegroundColor Yellow
-        for ($i = 15; $i -gt 0; $i--) {
-            Write-Host "`r  Restarting in $i seconds...  " -ForegroundColor Yellow -NoNewline
-            Start-Sleep -Seconds 1
-        }
-        Restart-Computer -Force
-    }
-    
-    Wait-KeyPress
-}
-
-# ============================================
-# 18. SOFTWARE UPDATE MANAGER (WINGET)
-# ============================================
-function Update-Software {
-    Write-Host "`n========================================" -ForegroundColor Cyan
-    Write-Host "SOFTWARE UPDATE MANAGER (WINGET)" -ForegroundColor Cyan
-    Write-Host "========================================`n" -ForegroundColor Cyan
-    
-    # Check if winget is available
-    Write-Log "Checking for winget..." "STEP"
-    $wingetCmd = Get-Command winget -ErrorAction SilentlyContinue
-    if (-not $wingetCmd) {
-        Write-Log "Winget is not installed or not in PATH" "WARNING"
-        
-        # ── Diagnose WHY winget is missing ──
-        Write-Host "`n  Winget not found. Diagnosing..." -ForegroundColor Yellow
-        
-        $osBuild = [System.Environment]::OSVersion.Version.Build
-        $isLTSC = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" -ErrorAction SilentlyContinue).EditionID -match "LTSC|LTSB|Server"
-        $hasStore = Get-AppxPackage -Name "Microsoft.WindowsStore" -ErrorAction SilentlyContinue
-        $hasAppInstaller = Get-AppxPackage -Name "Microsoft.DesktopAppInstaller" -ErrorAction SilentlyContinue
-        
-        if ($isLTSC) {
-            Write-Host "  Cause: Windows LTSC/LTSB detected (no Microsoft Store by default)" -ForegroundColor Red
-            Write-Host "  Fix:   Download winget manually from:" -ForegroundColor Gray
-            Write-Host "         https://github.com/microsoft/winget-cli/releases" -ForegroundColor Cyan
-            Write-Host "         Install the .msixbundle file from the latest release." -ForegroundColor Gray
-        } elseif (-not $hasStore) {
-            Write-Host "  Cause: Microsoft Store is missing or disabled" -ForegroundColor Red
-            Write-Host "  Fix:   Re-enable the Store via Group Policy or re-register it:" -ForegroundColor Gray
-            Write-Host "         PowerShell: Get-AppxPackage *WindowsStore* | Foreach {Add-AppxPackage -Register `$(`$_.InstallLocation)\AppXManifest.xml}" -ForegroundColor DarkGray
-        } elseif (-not $hasAppInstaller) {
-            Write-Host "  Cause: App Installer package is missing (winget is bundled with it)" -ForegroundColor Red
-        } elseif ($osBuild -lt 17763) {
-            Write-Host "  Cause: Windows build $osBuild is too old (winget requires build 17763+)" -ForegroundColor Red
-            Write-Host "  Fix:   Update Windows to version 1809 or later." -ForegroundColor Gray
-        } else {
-            Write-Host "  Cause: App Installer may need updating or re-registering" -ForegroundColor Red
-        }
-        
-        # ── Offer one-click install from Microsoft Store ──
-        if ($hasStore -and -not $isLTSC) {
-            Write-Host ""
-            if (Get-ValidYN "  Open Microsoft Store to install/update App Installer (winget)?") {
-                Start-Process "ms-windows-store://pdp/?productid=9NBLGGH4NNS1"
-                Write-Log "Opened Microsoft Store for App Installer" "SUCCESS"
-                Write-Host "  After installing, close and re-open this script." -ForegroundColor Gray
-            }
-        }
-        
-        # ── Fallback: still offer basic update checks without winget ──
-        Write-Host "`n  --- Fallback Options (no winget needed) ---" -ForegroundColor DarkCyan
-        Write-Host "    1 = Check pending Windows Updates" -ForegroundColor White
-        Write-Host "    2 = Refresh Microsoft Store apps" -ForegroundColor White
-        Write-Host "    0 = Back to menu" -ForegroundColor DarkGray
-        Write-Host "  Choice: " -ForegroundColor Yellow -NoNewline
-        $fallback = (Read-Host).Trim()
-        
-        switch ($fallback) {
-            "1" {
-                Write-Log "Checking pending Windows Updates..." "STEP"
-                Write-Host "  Searching (this may take a moment)..." -ForegroundColor Gray
-                try {
-                    $updateSession = New-Object -ComObject Microsoft.Update.Session
-                    $searcher = $updateSession.CreateUpdateSearcher()
-                    $result = $searcher.Search("IsInstalled=0")
-                    if ($result.Updates.Count -gt 0) {
-                        Write-Host "`n  Pending Updates ($($result.Updates.Count)):" -ForegroundColor Yellow
-                        foreach ($update in $result.Updates) {
-                            $size = [math]::Round($update.MaxDownloadSize / 1MB, 1)
-                            $severity = if ($update.MsrcSeverity) { " [$($update.MsrcSeverity)]" } else { "" }
-                            Write-Host "    - $($update.Title)$severity [$size MB]" -ForegroundColor White
-                        }
-                        Write-Host ""
-                        if (Get-ValidYN "  Open Windows Update to install these?") {
-                            Start-Process "ms-settings:windowsupdate"
-                            Write-Log "Opened Windows Update settings" "SUCCESS"
-                        }
-                    } else {
-                        Write-Log "Windows is fully up to date!" "SUCCESS"
-                    }
-                } catch {
-                    Write-Log "Could not check Windows Updates: $($_.Exception.Message)" "WARNING"
-                }
-            }
-            "2" {
-                Write-Log "Refreshing Microsoft Store apps..." "STEP"
-                Write-Host "  Triggering Store app updates (runs in background)..." -ForegroundColor Gray
-                try {
-                    Get-CimInstance -Namespace "Root\cimv2\mdm\dmmap" -ClassName "MDM_EnterpriseModernAppManagement_AppManagement01" -ErrorAction Stop |
-                        Invoke-CimMethod -MethodName "UpdateScanMethod" -ErrorAction SilentlyContinue | Out-Null
-                    Write-Log "Store app update scan triggered" "SUCCESS"
-                    Write-Host "  Store apps will update in the background." -ForegroundColor Green
-                    Write-Host "  Check Microsoft Store > Library for progress." -ForegroundColor Gray
-                } catch {
-                    # Fallback: open Store library page
-                    Write-Host "  Auto-trigger not available. Opening Store Library..." -ForegroundColor Yellow
-                    Start-Process "ms-windows-store://downloadsandupdates"
-                    Write-Log "Opened Store downloads page" "SUCCESS"
-                    Write-Host "  Click 'Get updates' in the Store to refresh all apps." -ForegroundColor Gray
-                }
-            }
-        }
-        
-        Wait-KeyPress
-        return
-    }
-    
-    $wingetVersion = & winget --version 2>$null
-    Write-Log "Winget found (version: $wingetVersion)" "SUCCESS"
-    
-    # Main menu when winget IS available
-    Write-Host "  Options:" -ForegroundColor Yellow
-    Write-Host "  1. Check for updates" -ForegroundColor White
-    Write-Host "  2. Update ALL packages" -ForegroundColor White
-    Write-Host "  3. Update a specific package" -ForegroundColor White
-    Write-Host "  4. Search & install a new package" -ForegroundColor White
-    Write-Host "  5. List installed packages" -ForegroundColor White
-    Write-Host "  0. Back to menu" -ForegroundColor White
-    Write-Host "`n  Choice (0-5): " -ForegroundColor Yellow -NoNewline
-    $updateChoice = (Read-Host).Trim()
-    
-    switch ($updateChoice) {
-        "1" {
-            # List available updates
-            Write-Log "Scanning for available updates..." "STEP"
-            Write-Host "  This may take a moment...`n" -ForegroundColor Gray
-            
-            $upgradeOutput = & winget upgrade --include-unknown --accept-source-agreements 2>$null
-            foreach ($line in $upgradeOutput) {
-                Write-Host "  $line" -ForegroundColor White
-            }
-            
-            # Count available updates - try multiple patterns for compatibility
-            $availableCount = 0
-            $upgradePattern = "(\d+)\s+upgrades?\s+available"
-            $countLine = $upgradeOutput | Where-Object { $_ -match $upgradePattern } | Select-Object -Last 1
-            if ($countLine -match $upgradePattern) {
-                $availableCount = [int]$Matches[1]
-            } else {
-                # Fallback: count lines that look like package entries
-                $count = 0
-                foreach ($uline in $upgradeOutput) {
-                    if ($uline.Trim().Length -gt 20 -and $uline -notlike "Name*" -and $uline -notlike "---*") { $count++ }
-                }
-                $availableCount = $count
-            }
-            
-            if ($availableCount -gt 0) {
-                Write-Host "`n  $availableCount update(s) available." -ForegroundColor Yellow
-            } else {
-                Write-Host "`n  All packages are up to date!" -ForegroundColor Green
-            }
-        }
-        "2" {
-            Write-Log "Updating all packages..." "STEP"
-            Write-Host "`n  Updating all packages. This may take several minutes..." -ForegroundColor Gray
-            Write-Host "  Some packages may show progress bars below.`n" -ForegroundColor DarkGray
-            
-            & winget upgrade --all --include-unknown --accept-source-agreements --accept-package-agreements 2>$null
-            
-            # Winget exit codes: 0=success, other=partial failure (common and usually harmless)
-            if ($LASTEXITCODE -eq 0) {
-                Write-Log "All packages updated successfully!" "SUCCESS"
-            } else {
-                Write-Log "Update process completed (some packages may have been skipped)" "WARNING"
-                Write-Host "  Note: Non-zero exit code ($LASTEXITCODE) is common when:" -ForegroundColor Gray
-                Write-Host "    - A package has no newer version available" -ForegroundColor DarkGray
-                Write-Host "    - A package requires manual update (e.g., from its own installer)" -ForegroundColor DarkGray
-                Write-Host "    - A package was pinned to a specific version" -ForegroundColor DarkGray
-            }
-        }
-        "3" {
-            # First show available updates so user can see IDs
-            Write-Host "`n  Scanning for available updates..." -ForegroundColor Gray
-            $upgradeOutput = & winget upgrade --include-unknown --accept-source-agreements 2>$null
-            foreach ($line in $upgradeOutput) {
-                Write-Host "  $line" -ForegroundColor White
-            }
-            
-            Write-Host "`n  Enter the package ID (from the list above): " -ForegroundColor Yellow -NoNewline
-            $packageId = (Read-Host).Trim()
-            if (-not [string]::IsNullOrEmpty($packageId)) {
-                Write-Log "Updating $packageId..." "STEP"
-                & winget upgrade --id $packageId --accept-source-agreements --accept-package-agreements 2>$null
-                if ($LASTEXITCODE -eq 0) {
-                    Write-Log "$packageId updated successfully!" "SUCCESS"
-                } else {
-                    Write-Log "Could not update $packageId (exit code: $LASTEXITCODE)" "WARNING"
-                    Write-Host "  Tip: Check the package ID is correct. Use winget list to verify." -ForegroundColor Gray
-                }
-            } else {
-                Write-Host "  No package ID entered. Skipped." -ForegroundColor Gray
-            }
-        }
-        "4" {
-            Write-Host "`n  Enter search term (app name or keyword): " -ForegroundColor Yellow -NoNewline
-            $searchTerm = (Read-Host).Trim()
-            if (-not [string]::IsNullOrEmpty($searchTerm)) {
-                Write-Log "Searching for $searchTerm..." "STEP"
-                Write-Host ""
-                & winget search $searchTerm --accept-source-agreements 2>$null
-                
-                Write-Host "`n  Enter the package ID to install (or press Enter to cancel): " -ForegroundColor Yellow -NoNewline
-                $installId = (Read-Host).Trim()
-                if (-not [string]::IsNullOrEmpty($installId)) {
-                    Write-Host ""
-                    if (Get-ValidYN "  Install $($installId)?") {
-                        Write-Log "Installing $installId..." "STEP"
-                        & winget install --id $installId --accept-source-agreements --accept-package-agreements 2>$null
-                        if ($LASTEXITCODE -eq 0) {
-                            Write-Log "$installId installed successfully!" "SUCCESS"
-                        } else {
-                            Write-Log "Installation of $installId failed (exit code: $LASTEXITCODE)" "WARNING"
-                        }
-                    }
-                } else {
-                    Write-Host "  Cancelled." -ForegroundColor Gray
-                }
-            } else {
-                Write-Host "  No search term entered." -ForegroundColor Gray
-            }
-        }
-        "5" {
-            Write-Log "Listing installed packages..." "STEP"
-            Write-Host "  Loading...`n" -ForegroundColor Gray
-            & winget list --accept-source-agreements 2>$null
-        }
-        "0" {
+    else {
+        # Interactive mode: two upfront questions, zero prompts after
+        if (-not (Get-ValidYN "  Start cleanup?")) {
+            Write-Log "Disk cleanup cancelled by user" "INFO"
+            Wait-KeyPress
             return
         }
-        default {
-            Write-Host "  Invalid choice." -ForegroundColor Red
+        $cleanRecycleBin = Get-ValidYN "  Also empty Recycle Bin?"
+        Write-Host ""
+    }
+    
+    # Helper: get folder size in MB (fast, pre-deletion measurement)
+    function Get-FolderSizeMB {
+        param([string]$Path)
+        if (-not (Test-Path $Path)) { return 0 }
+        $bytes = (Get-ChildItem -Path $Path -Recurse -File -Force -ErrorAction SilentlyContinue |
+            Measure-Object -Property Length -Sum -ErrorAction SilentlyContinue).Sum
+        if ($bytes) { return [math]::Round($bytes / 1MB, 1) }
+        return 0
+    }
+    
+    # Helper: format MB nicely
+    function Format-Size {
+        param([double]$MB)
+        if ($MB -ge 1024) { return "$([math]::Round($MB / 1024, 1)) GB" }
+        return "$([math]::Round($MB)) MB"
+    }
+    
+    $totalCleaned = 0
+    
+    # ── Step 1: Temp files, thumbnails, icon cache ──
+    Write-Log "[1/5] Clearing temp files & cache..." "STEP"
+    
+    # Deduplicate temp paths (TEMP and LOCALAPPDATA\Temp are often identical)
+    $tempFolders = @("$env:TEMP", "$env:WINDIR\Temp", "$env:LOCALAPPDATA\Temp")
+    $resolvedTempPaths = @()
+    foreach ($folder in $tempFolders) {
+        if (Test-Path $folder) {
+            $fullPath = (Resolve-Path $folder -ErrorAction SilentlyContinue).Path
+            if ($fullPath -and $fullPath -notin $resolvedTempPaths) {
+                $resolvedTempPaths += $fullPath
+            }
         }
     }
+    
+    # Measure size before deleting
+    $tempSizeMB = 0
+    foreach ($folder in $resolvedTempPaths) {
+        $tempSizeMB += Get-FolderSizeMB $folder
+    }
+    
+    # Delete everything — single call, no file-by-file, no prompts
+    foreach ($folder in $resolvedTempPaths) {
+        Get-ChildItem -Path $folder -Force -ErrorAction SilentlyContinue |
+        Remove-Item -Recurse -Force -Confirm:$false -ErrorAction SilentlyContinue
+    }
+    
+    # Thumbnail + icon cache
+    $thumbPath = "$env:LOCALAPPDATA\Microsoft\Windows\Explorer"
+    if (Test-Path $thumbPath) {
+        $thumbFiles = Get-ChildItem -Path $thumbPath -Force -ErrorAction SilentlyContinue |
+        Where-Object { $_.Name -like "thumbcache_*" -or $_.Name -like "iconcache_*" }
+        if ($thumbFiles) {
+            $tempSizeMB += [math]::Round(($thumbFiles | Measure-Object -Property Length -Sum).Sum / 1MB, 1)
+            $thumbFiles | Remove-Item -Force -ErrorAction SilentlyContinue
+        }
+    }
+    
+    $totalCleaned += $tempSizeMB
+    Write-Log "Temp files & cache: $(Format-Size $tempSizeMB) cleaned" "SUCCESS"
+    
+    # ── Step 2: Browser caches ──
+    Write-Log "`n[2/5] Clearing browser caches..." "STEP"
+    
+    # Browser definitions: name, paths
+    $browserDefs = @(
+        @{ Name = "Edge"; Paths = @(
+                "$env:LocalAppData\Microsoft\Edge\User Data\*\Cache",
+                "$env:LocalAppData\Microsoft\Edge\User Data\*\Cache_Data",
+                "$env:LocalAppData\Microsoft\Edge\User Data\*\Code Cache",
+                "$env:LocalAppData\Microsoft\Edge\User Data\*\GPUCache",
+                "$env:LocalAppData\Microsoft\Edge\User Data\*\Service Worker\CacheStorage"
+            )
+        },
+        @{ Name = "Chrome"; Paths = @(
+                "$env:LocalAppData\Google\Chrome\User Data\*\Cache",
+                "$env:LocalAppData\Google\Chrome\User Data\*\Cache_Data",
+                "$env:LocalAppData\Google\Chrome\User Data\*\Code Cache",
+                "$env:LocalAppData\Google\Chrome\User Data\*\GPUCache",
+                "$env:LocalAppData\Google\Chrome\User Data\*\Service Worker\CacheStorage"
+            )
+        },
+        @{ Name = "Brave"; Paths = @(
+                "$env:LocalAppData\BraveSoftware\Brave-Browser\User Data\*\Cache",
+                "$env:LocalAppData\BraveSoftware\Brave-Browser\User Data\*\Cache_Data",
+                "$env:LocalAppData\BraveSoftware\Brave-Browser\User Data\*\Code Cache"
+            )
+        },
+        @{ Name = "Vivaldi"; Paths = @(
+                "$env:LocalAppData\Vivaldi\User Data\*\Cache",
+                "$env:LocalAppData\Vivaldi\User Data\*\Cache_Data",
+                "$env:LocalAppData\Vivaldi\User Data\*\Code Cache"
+            )
+        },
+        @{ Name = "Arc"; Paths = @(
+                "$env:LocalAppData\Arc\User Data\*\Cache",
+                "$env:LocalAppData\Arc\User Data\*\Cache_Data",
+                "$env:LocalAppData\Arc\User Data\*\Code Cache"
+            )
+        },
+        @{ Name = "Opera"; Paths = @(
+                "$env:LocalAppData\Opera Software\Opera Stable\Cache",
+                "$env:LocalAppData\Opera Software\Opera Stable\Cache_Data",
+                "$env:AppData\Opera Software\Opera Stable\Cache"
+            )
+        },
+        @{ Name = "Floorp"; Paths = @(
+                "$env:LocalAppData\Floorp\User Data\*\Cache",
+                "$env:LocalAppData\Floorp\User Data\*\Cache_Data"
+            )
+        },
+        @{ Name = "Comet"; Paths = @(
+                "$env:LocalAppData\Comet\User Data\*\Cache",
+                "$env:LocalAppData\Comet\User Data\*\Cache_Data"
+            )
+        },
+        @{ Name = "Firefox"; Paths = @(
+                "$env:LocalAppData\Mozilla\Firefox\Profiles\*.default*\cache2"
+            )
+        },
+        @{ Name = "Waterfox"; Paths = @(
+                "$env:LocalAppData\Waterfox\Profiles\*.default*\cache2"
+            )
+        },
+        @{ Name = "Zen"; Paths = @(
+                "$env:LocalAppData\Zen\Profiles\*.default*\cache2"
+            )
+        },
+        @{ Name = "Tor"; Paths = @(
+                "$env:LocalAppData\Tor Browser\Browser\TorBrowser\Data\Browser\profile.default\cache2"
+            )
+        }
+    )
+    
+    $browserTotalMB = 0
+    $browserResults = @()
+    
+    foreach ($browser in $browserDefs) {
+        $browserSizeMB = 0
+        $found = $false
+        
+        foreach ($cachePath in $browser.Paths) {
+            $resolvedPaths = Resolve-Path $cachePath -ErrorAction SilentlyContinue
+            foreach ($resolved in $resolvedPaths) {
+                if (Test-Path $resolved) {
+                    $found = $true
+                    $browserSizeMB += Get-FolderSizeMB $resolved.Path
+                    Remove-Item -Path "$($resolved.Path)\*" -Recurse -Force -Confirm:$false -ErrorAction SilentlyContinue
+                }
+            }
+        }
+        
+        if ($found -and $browserSizeMB -gt 0) {
+            $browserResults += "    $($browser.Name): $(Format-Size $browserSizeMB)"
+            $browserTotalMB += $browserSizeMB
+        }
+    }
+    
+    if ($browserResults.Count -gt 0) {
+        foreach ($line in $browserResults) {
+            Write-Host $line -ForegroundColor Gray
+        }
+    }
+    $totalCleaned += $browserTotalMB
+    Write-Log "Browser caches: $(Format-Size $browserTotalMB) cleaned" "SUCCESS"
+    
+    # ── Step 3: Windows Update cache ──
+    Write-Log "`n[3/5] Clearing Windows Update cache..." "STEP"
+    
+    # Remember service states to restore properly
+    $wuBefore = (Get-Service wuauserv -ErrorAction SilentlyContinue).Status
+    $bitsBefore = (Get-Service bits -ErrorAction SilentlyContinue).Status
+    
+    Stop-Service wuauserv -Force -ErrorAction SilentlyContinue 2>$null
+    Stop-Service bits -Force -ErrorAction SilentlyContinue 2>$null
+    Start-Sleep -Seconds 1
+    
+    $wuPaths = @(
+        "$env:WINDIR\SoftwareDistribution\Download",
+        "$env:WINDIR\SoftwareDistribution\DataStore"
+    )
+    $wuSizeMB = 0
+    foreach ($path in $wuPaths) {
+        $wuSizeMB += Get-FolderSizeMB $path
+        if (Test-Path $path) {
+            Remove-Item -Path "$path\*" -Recurse -Force -Confirm:$false -ErrorAction SilentlyContinue
+        }
+    }
+    
+    # Restore services to previous state
+    if ($wuBefore -eq "Running") {
+        Start-Service wuauserv -ErrorAction SilentlyContinue -WarningAction SilentlyContinue
+    }
+    if ($bitsBefore -eq "Running") {
+        Start-Service bits -ErrorAction SilentlyContinue -WarningAction SilentlyContinue
+    }
+    
+    $totalCleaned += $wuSizeMB
+    Write-Log "Windows Update cache: $(Format-Size $wuSizeMB) cleaned" "SUCCESS"
+    
+    # ── Step 4: Old logs, crash dumps, and optional Recycle Bin ──
+    Write-Log "`n[4/5] Clearing old logs & crash dumps..." "STEP"
+    
+    $logFolders = @(
+        "$env:WINDIR\Logs\CBS",
+        "$env:WINDIR\Panther",
+        "$env:LOCALAPPDATA\CrashDumps",
+        "$env:WINDIR\Minidump"
+    )
+    $logSizeMB = 0
+    foreach ($logFolder in $logFolders) {
+        if (Test-Path $logFolder) {
+            $oldFiles = Get-ChildItem -Path $logFolder -Recurse -Force -ErrorAction SilentlyContinue |
+            Where-Object { $_.LastWriteTime -lt (Get-Date).AddDays( - $($Config.LogCleanupDays)) }
+            if ($oldFiles) {
+                $logSizeMB += [math]::Round(($oldFiles | Where-Object { -not $_.PSIsContainer } |
+                        Measure-Object -Property Length -Sum -ErrorAction SilentlyContinue).Sum / 1MB, 1)
+                $oldFiles | Remove-Item -Force -Recurse -Confirm:$false -ErrorAction SilentlyContinue
+            }
+        }
+    }
+    
+    $totalCleaned += $logSizeMB
+    Write-Log "Old logs (>$($Config.LogCleanupDays) days): $(Format-Size $logSizeMB) cleaned" "SUCCESS"
+    
+    # Recycle Bin (if user opted in)
+    if ($cleanRecycleBin) {
+        try {
+            Clear-RecycleBin -Force -ErrorAction Stop
+            Write-Log "Recycle Bin emptied" "SUCCESS"
+        }
+        catch {
+            Write-Log "Recycle Bin: already empty or could not clear" "INFO"
+        }
+    }
+    else {
+        Write-Host "    Recycle Bin: Skipped (user choice)" -ForegroundColor Gray
+    }
+    
+    # ── Step 5: Drive optimization (SSD TRIM / HDD Defrag) ──
+    Write-Log "`n[5/5] Optimizing drives..." "STEP"
+    $fixedVolumes = Get-Volume | Where-Object { $_.DriveLetter -and $_.DriveType -eq "Fixed" }
+    foreach ($vol in $fixedVolumes) {
+        try {
+            $diskType = "Unknown"
+            $partition = Get-Partition -DriveLetter $vol.DriveLetter -ErrorAction SilentlyContinue
+            if ($partition) {
+                $physDisk = Get-PhysicalDisk -ErrorAction SilentlyContinue |
+                Where-Object { $_.DeviceId -eq "$($partition.DiskNumber)" }
+                if ($physDisk) { $diskType = $physDisk.MediaType }
+            }
+            
+            if ($diskType -eq "SSD") {
+                Optimize-Volume -DriveLetter $vol.DriveLetter -ReTrim -ErrorAction SilentlyContinue | Out-Null
+                Write-Log "Drive $($vol.DriveLetter): SSD TRIM completed" "SUCCESS"
+            }
+            elseif ($diskType -eq "HDD") {
+                Optimize-Volume -DriveLetter $vol.DriveLetter -Defrag -ErrorAction SilentlyContinue | Out-Null
+                Write-Log "Drive $($vol.DriveLetter): Defrag completed" "SUCCESS"
+            }
+            else {
+                Write-Host "    Drive $($vol.DriveLetter): Skipped (type unknown -- check with Option 5)" -ForegroundColor Gray
+            }
+        }
+        catch {
+            Write-Log "Drive $($vol.DriveLetter): Could not optimize" "WARNING"
+        }
+    }
+    
+    # ── Final Results ──
+    Start-Sleep -Seconds 1
+    $afterCleanup = Get-Volume -DriveLetter C -ErrorAction SilentlyContinue
+    $afterFreeGB = [math]::Round($afterCleanup.SizeRemaining / 1GB, 2)
+    $freedSpace = [math]::Round($afterFreeGB - $beforeFreeGB, 2)
+    if ($freedSpace -lt 0) { $freedSpace = 0 }
+    
+    Write-Host "`n  ==========================================" -ForegroundColor Cyan
+    Write-Host "  Cleaned: ~$(Format-Size $totalCleaned) of junk identified" -ForegroundColor White
+    Write-Host "  Before:  $beforeFreeGB GB free" -ForegroundColor Gray
+    Write-Host "  After:   $afterFreeGB GB free" -ForegroundColor Gray
+    Write-Host "  Freed:   $freedSpace GB" -ForegroundColor $(if ($freedSpace -gt 0) { "Green" }else { "White" })
+    Write-Host "  ==========================================" -ForegroundColor Cyan
     
     Wait-KeyPress
 }
 
 # ============================================
-# 19. BLOATWARE UNINSTALLER (UWP Apps)
+# 14. BLOATWARE UNINSTALLER (UWP Apps)
 # ============================================
 function Remove-Bloatware {
     Write-Host "`n========================================" -ForegroundColor Cyan
@@ -3125,71 +2733,71 @@ function Remove-Bloatware {
     # ── LIST 1: DEFINITE JUNK (nobody needs these pre-installed) ──
     $definiteJunk = @(
         # Junk games
-        @{Pattern="*CandyCrush*";          Desc="Candy Crush Saga"},
-        @{Pattern="*BubbleWitch*";         Desc="Bubble Witch Saga"},
-        @{Pattern="*MarchofEmpires*";      Desc="March of Empires"},
-        @{Pattern="*HiddenCityMystery*";   Desc="Hidden City"},
-        @{Pattern="*RoyalRevolt*";         Desc="Royal Revolt"},
-        @{Pattern="*AutodeskSketchBook*";  Desc="Autodesk SketchBook"},
-        @{Pattern="*WildTangent*";         Desc="WildTangent Games"},
+        @{Pattern = "*CandyCrush*"; Desc = "Candy Crush Saga" },
+        @{Pattern = "*BubbleWitch*"; Desc = "Bubble Witch Saga" },
+        @{Pattern = "*MarchofEmpires*"; Desc = "March of Empires" },
+        @{Pattern = "*HiddenCityMystery*"; Desc = "Hidden City" },
+        @{Pattern = "*RoyalRevolt*"; Desc = "Royal Revolt" },
+        @{Pattern = "*AutodeskSketchBook*"; Desc = "Autodesk SketchBook" },
+        @{Pattern = "*WildTangent*"; Desc = "WildTangent Games" },
         # Bing suite
-        @{Pattern="*BingNews*";            Desc="Bing News"},
-        @{Pattern="*BingFinance*";         Desc="Bing Finance"},
-        @{Pattern="*BingSports*";          Desc="Bing Sports"},
-        @{Pattern="*BingTranslator*";      Desc="Bing Translator"},
+        @{Pattern = "*BingNews*"; Desc = "Bing News" },
+        @{Pattern = "*BingFinance*"; Desc = "Bing Finance" },
+        @{Pattern = "*BingSports*"; Desc = "Bing Sports" },
+        @{Pattern = "*BingTranslator*"; Desc = "Bing Translator" },
         # Dead/useless MS apps
-        @{Pattern="*Microsoft3DViewer*";   Desc="3D Viewer"},
-        @{Pattern="*3DBuilder*";           Desc="3D Builder"},
-        @{Pattern="*Print3D*";             Desc="Print 3D"},
-        @{Pattern="*MixedReality*";        Desc="Mixed Reality Portal"},
-        @{Pattern="*OneConnect*";          Desc="Paid Wi-Fi & Cellular"},
-        @{Pattern="*People*";              Desc="People App"},
-        @{Pattern="*Getstarted*";          Desc="Tips / Get Started"},
-        @{Pattern="*GetHelp*";             Desc="Get Help"},
-        @{Pattern="*FeedbackHub*";         Desc="Feedback Hub"},
-        @{Pattern="*Wallet*";              Desc="Microsoft Wallet"},
-        @{Pattern="*MicrosoftOfficeHub*";  Desc="Office Hub (Get Office)"},
-        @{Pattern="*PowerAutomateDesktop*"; Desc="Power Automate"},
-        @{Pattern="*ZuneMusic*";           Desc="Groove Music"},
-        @{Pattern="*ZuneVideo*";           Desc="Movies & TV"},
+        @{Pattern = "*Microsoft3DViewer*"; Desc = "3D Viewer" },
+        @{Pattern = "*3DBuilder*"; Desc = "3D Builder" },
+        @{Pattern = "*Print3D*"; Desc = "Print 3D" },
+        @{Pattern = "*MixedReality*"; Desc = "Mixed Reality Portal" },
+        @{Pattern = "*OneConnect*"; Desc = "Paid Wi-Fi & Cellular" },
+        @{Pattern = "*People*"; Desc = "People App" },
+        @{Pattern = "*Getstarted*"; Desc = "Tips / Get Started" },
+        @{Pattern = "*GetHelp*"; Desc = "Get Help" },
+        @{Pattern = "*FeedbackHub*"; Desc = "Feedback Hub" },
+        @{Pattern = "*Wallet*"; Desc = "Microsoft Wallet" },
+        @{Pattern = "*MicrosoftOfficeHub*"; Desc = "Office Hub (Get Office)" },
+        @{Pattern = "*PowerAutomateDesktop*"; Desc = "Power Automate" },
+        @{Pattern = "*ZuneMusic*"; Desc = "Groove Music" },
+        @{Pattern = "*ZuneVideo*"; Desc = "Movies & TV" },
         # OEM trial junk
-        @{Pattern="*McAfee*";              Desc="McAfee Security (trial)"},
-        @{Pattern="*Norton*";              Desc="Norton Security (trial)"},
-        @{Pattern="*ExpressVPN*";          Desc="ExpressVPN (trial)"},
-        @{Pattern="*CyberLink*";           Desc="CyberLink Media"}
+        @{Pattern = "*McAfee*"; Desc = "McAfee Security (trial)" },
+        @{Pattern = "*Norton*"; Desc = "Norton Security (trial)" },
+        @{Pattern = "*ExpressVPN*"; Desc = "ExpressVPN (trial)" },
+        @{Pattern = "*CyberLink*"; Desc = "CyberLink Media" }
     )
     
     # ── LIST 2: POPULAR APPS (pre-installed, but people often use them) ──
     $popularApps = @(
-        @{Pattern="*SpotifyMusic*";        Desc="Spotify"},
-        @{Pattern="*Netflix*";             Desc="Netflix"},
-        @{Pattern="*AmazonPrime*";         Desc="Amazon Prime Video"},
-        @{Pattern="*WhatsApp*";            Desc="WhatsApp"},
-        @{Pattern="*Instagram*";           Desc="Instagram"},
-        @{Pattern="*Facebook*";            Desc="Facebook"},
-        @{Pattern="*Twitter*";             Desc="Twitter / X"},
-        @{Pattern="*TikTok*";              Desc="TikTok"},
-        @{Pattern="*LinkedInforWindows*";  Desc="LinkedIn"},
-        @{Pattern="*Disney*";              Desc="Disney+"},
-        @{Pattern="*Clipchamp*";           Desc="Clipchamp Video Editor"},
-        @{Pattern="*MicrosoftTeams*";      Desc="Microsoft Teams"},
-        @{Pattern="*SkypeApp*";            Desc="Skype"},
-        @{Pattern="*YourPhone*";           Desc="Phone Link"},
-        @{Pattern="*Solitaire*";           Desc="Microsoft Solitaire"},
-        @{Pattern="*MicrosoftMahjong*";    Desc="Microsoft Mahjong"},
-        @{Pattern="*BingWeather*";         Desc="Weather App"},
-        @{Pattern="*WindowsMaps*";         Desc="Windows Maps"},
-        @{Pattern="*Todos*";               Desc="Microsoft To-Do"},
-        @{Pattern="*Whiteboard*";          Desc="Microsoft Whiteboard"},
-        @{Pattern="*Plex*";                Desc="Plex"},
-        @{Pattern="*Dolby*";               Desc="Dolby Access"},
-        @{Pattern="*GamingApp*";           Desc="Xbox App"},
-        @{Pattern="*XboxApp*";             Desc="Xbox Console Companion"},
-        @{Pattern="*Xbox.TCUI*";           Desc="Xbox TCUI"},
-        @{Pattern="*XboxSpeechToText*";    Desc="Xbox Speech to Text"},
-        @{Pattern="*XboxIdentityProvider*"; Desc="Xbox Identity"},
-        @{Pattern="*XboxGameOverlay*";     Desc="Xbox Game Overlay"},
-        @{Pattern="*XboxGamingOverlay*";   Desc="Xbox Game Bar"}
+        @{Pattern = "*SpotifyMusic*"; Desc = "Spotify" },
+        @{Pattern = "*Netflix*"; Desc = "Netflix" },
+        @{Pattern = "*AmazonPrime*"; Desc = "Amazon Prime Video" },
+        @{Pattern = "*WhatsApp*"; Desc = "WhatsApp" },
+        @{Pattern = "*Instagram*"; Desc = "Instagram" },
+        @{Pattern = "*Facebook*"; Desc = "Facebook" },
+        @{Pattern = "*Twitter*"; Desc = "Twitter / X" },
+        @{Pattern = "*TikTok*"; Desc = "TikTok" },
+        @{Pattern = "*LinkedInforWindows*"; Desc = "LinkedIn" },
+        @{Pattern = "*Disney*"; Desc = "Disney+" },
+        @{Pattern = "*Clipchamp*"; Desc = "Clipchamp Video Editor" },
+        @{Pattern = "*MicrosoftTeams*"; Desc = "Microsoft Teams" },
+        @{Pattern = "*SkypeApp*"; Desc = "Skype" },
+        @{Pattern = "*YourPhone*"; Desc = "Phone Link" },
+        @{Pattern = "*Solitaire*"; Desc = "Microsoft Solitaire" },
+        @{Pattern = "*MicrosoftMahjong*"; Desc = "Microsoft Mahjong" },
+        @{Pattern = "*BingWeather*"; Desc = "Weather App" },
+        @{Pattern = "*WindowsMaps*"; Desc = "Windows Maps" },
+        @{Pattern = "*Todos*"; Desc = "Microsoft To-Do" },
+        @{Pattern = "*Whiteboard*"; Desc = "Microsoft Whiteboard" },
+        @{Pattern = "*Plex*"; Desc = "Plex" },
+        @{Pattern = "*Dolby*"; Desc = "Dolby Access" },
+        @{Pattern = "*GamingApp*"; Desc = "Xbox App" },
+        @{Pattern = "*XboxApp*"; Desc = "Xbox Console Companion" },
+        @{Pattern = "*Xbox.TCUI*"; Desc = "Xbox TCUI" },
+        @{Pattern = "*XboxSpeechToText*"; Desc = "Xbox Speech to Text" },
+        @{Pattern = "*XboxIdentityProvider*"; Desc = "Xbox Identity" },
+        @{Pattern = "*XboxGameOverlay*"; Desc = "Xbox Game Overlay" },
+        @{Pattern = "*XboxGamingOverlay*"; Desc = "Xbox Game Bar" }
     )
     
     # Scan installed apps
@@ -3281,7 +2889,8 @@ function Remove-Bloatware {
                 Get-AppxPackage -Name $item.Name -ErrorAction SilentlyContinue | Remove-AppxPackage -ErrorAction Stop
                 Write-Log "Removed: $($item.Desc)" "SUCCESS"
                 $count++
-            } catch {
+            }
+            catch {
                 Write-Log "Could not remove $($item.Desc): $($_.Exception.Message)" "WARNING"
             }
         }
@@ -3320,12 +2929,14 @@ function Remove-Bloatware {
                     $i++
                     if (Get-ValidYN "  [$i/$($popularFound.Count)] Keep $($item.Desc)?") {
                         Write-Host "    Kept." -ForegroundColor Green
-                    } else {
+                    }
+                    else {
                         try {
                             Get-AppxPackage -Name $item.Name -ErrorAction SilentlyContinue | Remove-AppxPackage -ErrorAction Stop
                             Write-Log "Removed: $($item.Desc)" "SUCCESS"
                             $removedCount++
-                        } catch {
+                        }
+                        catch {
                             Write-Log "Could not remove $($item.Desc): $($_.Exception.Message)" "WARNING"
                         }
                     }
@@ -3339,15 +2950,17 @@ function Remove-Bloatware {
             foreach ($item in $allItems) {
                 $i++
                 $tag = if ($item -in $junkFound) { "[Junk]" } else { "[Popular]" }
-                if (Get-ValidYN "  [$i/$totalFound] Remove $($item.Desc) $tag?") {
+                if (Get-ValidYN ("  [$i/$totalFound] Remove $($item.Desc) " + $tag + "?")) {
                     try {
                         Get-AppxPackage -Name $item.Name -ErrorAction SilentlyContinue | Remove-AppxPackage -ErrorAction Stop
                         Write-Log "Removed: $($item.Desc)" "SUCCESS"
                         $removedCount++
-                    } catch {
+                    }
+                    catch {
                         Write-Log "Could not remove $($item.Desc): $($_.Exception.Message)" "WARNING"
                     }
-                } else {
+                }
+                else {
                     Write-Host "    Kept." -ForegroundColor Gray
                 }
             }
@@ -3367,117 +2980,791 @@ function Remove-Bloatware {
 }
 
 # ============================================
-# 20. STORAGE SPACE ANALYZER
+# 15. CLEAN OLD RESTORE POINTS
 # ============================================
-function Get-StorageAnalysis {
+function Remove-OldRestorePoints {
     Write-Host "`n========================================" -ForegroundColor Cyan
-    Write-Host "STORAGE SPACE ANALYZER" -ForegroundColor Cyan
+    Write-Host "CLEAN OLD RESTORE POINTS" -ForegroundColor Cyan
     Write-Host "========================================`n" -ForegroundColor Cyan
     
-    # Drive overview
-    Write-Log "Analyzing disk space usage..." "STEP"
-    $volume = Get-Volume -DriveLetter C -ErrorAction SilentlyContinue
-    if ($volume) {
-        $totalGB = [math]::Round($volume.Size / 1GB, 1)
-        $usedGB = [math]::Round(($volume.Size - $volume.SizeRemaining) / 1GB, 1)
-        $freeGB = [math]::Round($volume.SizeRemaining / 1GB, 1)
-        $usedPct = [math]::Round(($usedGB / $totalGB) * 100)
+    Write-Log "Scanning for restore points..." "STEP"
+    
+    try {
+        # Using WMI ShadowCopy to manage individual deletions
+        # Force array with @() — single results from Get-CimInstance aren't arrays
+        $shadows = @(Get-CimInstance Win32_ShadowCopy -ErrorAction Stop | Sort-Object InstallDate)
+        $count = $shadows.Count
         
-        $barFill = [math]::Floor($usedPct / 5)
-        $bar = $block.ToString() * $barFill + $shade.ToString() * (20 - $barFill)
-        $barClr = if ($usedPct -lt 70) {"Green"} elseif ($usedPct -lt 85) {"Yellow"} else {"Red"}
+        $keepCount = $Config.RestorePointsToKeep   # Defined in $Config at top of script
         
-        Write-Host "  Drive C: [$bar] $usedPct% used" -ForegroundColor $barClr
-        Write-Host "  Total: $totalGB GB  |  Used: $usedGB GB  |  Free: $freeGB GB" -ForegroundColor Gray
-        Write-Host ""
+        if ($count -eq 0) {
+            Write-Host "  No restore points found." -ForegroundColor Yellow
+        }
+        elseif ($count -le $keepCount) {
+            Write-Host "  Only $count restore point(s) exist. Keeping all for safety (minimum $keepCount)." -ForegroundColor Yellow
+        }
+        else {
+            $deleteCount = $count - $keepCount
+            Write-Host "  Found $count restore points." -ForegroundColor White
+            Write-Host "  Will keep the $keepCount newest and delete $deleteCount old point(s).`n" -ForegroundColor Yellow
+            
+            # Show what will be deleted vs kept
+            $toDelete = $shadows[0..($count - $keepCount - 1)]
+            $toKeep = $shadows[($count - $keepCount)..($count - 1)]
+            
+            foreach ($s in $toDelete) {
+                Write-Host "    [DELETE] $($s.InstallDate)" -ForegroundColor Red
+            }
+            foreach ($s in $toKeep) {
+                Write-Host "    [KEEP]   $($s.InstallDate)" -ForegroundColor Green
+            }
+            
+            if (-not (Get-ValidYN "`n  Proceed with deletion?")) {
+                Write-Log "Restore point cleanup cancelled by user" "WARNING"
+                Wait-KeyPress
+                return
+            }
+            
+            $deletedOk = 0
+            foreach ($shadow in $toDelete) {
+                try {
+                    Write-Host "  Deleting backup from $($shadow.InstallDate)..." -ForegroundColor Gray
+                    # Use vssadmin — the reliable method (Invoke-CimMethod Delete is not supported on Win32_ShadowCopy)
+                    $shadowId = $shadow.ID
+                    $result = & vssadmin delete shadows /Shadow="$shadowId" /Quiet 2>&1
+                    if ($LASTEXITCODE -eq 0) {
+                        $deletedOk++
+                    }
+                    else {
+                        Write-Log "Could not delete shadow copy: $result" "WARNING"
+                    }
+                }
+                catch {
+                    Write-Log "Could not delete shadow copy from $($shadow.InstallDate): $($_.Exception.Message)" "WARNING"
+                }
+            }
+            
+            Write-Log "Deleted $deletedOk of $deleteCount old restore points. Kept the $keepCount newest." "SUCCESS"
+        }
+    }
+    catch {
+        Write-Log "Error managing restore points: $($_.Exception.Message)" "ERROR"
     }
     
-    # Scan key folders
-    Write-Host "  Scanning folders (this may take 1-2 minutes)...`n" -ForegroundColor Gray
+    Wait-KeyPress
+}
+
+# ============================================
+# 16. DELETE OLD LOG FILES
+# ============================================
+function Remove-OldLogs {
+    param([switch]$Auto)
     
-    $foldersToScan = @(
-        @{Path="$env:USERPROFILE\Downloads";                              Label="Downloads"},
-        @{Path="$env:USERPROFILE\Documents";                              Label="Documents"},
-        @{Path="$env:USERPROFILE\Videos";                                 Label="Videos"},
-        @{Path="$env:USERPROFILE\Pictures";                               Label="Pictures"},
-        @{Path="$env:USERPROFILE\Desktop";                                Label="Desktop"},
-        @{Path="$env:USERPROFILE\Music";                                  Label="Music"},
-        @{Path="$env:LOCALAPPDATA\Temp";                                  Label="Temp Files"},
-        @{Path="$env:WINDIR\Temp";                                        Label="Windows Temp"},
-        @{Path="$env:WINDIR\SoftwareDistribution";                        Label="Windows Update Cache"},
-        @{Path="$env:LOCALAPPDATA\Microsoft\Windows\Explorer";            Label="Thumbnail Cache"},
-        @{Path="$env:LOCALAPPDATA\Google\Chrome\User Data";               Label="Chrome Data"},
-        @{Path="$env:LOCALAPPDATA\Microsoft\Edge\User Data";              Label="Edge Data"}
+    Write-Host "`n========================================" -ForegroundColor Cyan
+    Write-Host "CLEANUP SCRIPT LOGS & REPORTS" -ForegroundColor Cyan
+    Write-Host "========================================`n" -ForegroundColor Cyan
+    
+    $patterns = @("Optimizer_Log_*.txt", "System_Health_*.txt", "battery-report.html")
+    $days = $Config.LogCleanupDays
+    
+    # Check for files
+    $foundFiles = Get-ChildItem -Path $desktopPath -Include $patterns -File -Recurse -ErrorAction SilentlyContinue
+    
+    if ($foundFiles.Count -eq 0) {
+        Write-Host "  No script logs or reports found on Desktop." -ForegroundColor Green
+        return
+    }
+    
+    Write-Host "  Found $($foundFiles.Count) files generated by WinOptimizer." -ForegroundColor White
+    
+    $toDelete = @()
+    
+    if ($Auto) {
+        # Auto mode: silently delete files older than configured days
+        $limitDate = (Get-Date).AddDays(-$days)
+        $toDelete = $foundFiles | Where-Object { $_.LastWriteTime -lt $limitDate }
+        if ($toDelete.Count -gt 0) {
+            Write-Log "Auto-cleaning files older than $days days..." "STEP"
+        }
+    }
+    else {
+        # Interactive mode: ask user what to do
+        Write-Host "`n  What would you like to do?" -ForegroundColor Yellow
+        Write-Host "    1. Delete OLD files only (older than $days days)" -ForegroundColor White
+        Write-Host "    2. Delete ALL files (Clear history)" -ForegroundColor White
+        Write-Host "    0. Cancel" -ForegroundColor Gray
+        
+        Write-Host "`n  Choice: " -ForegroundColor Yellow -NoNewline
+        $choice = (Read-Host).Trim()
+        
+        switch ($choice) {
+            "1" {
+                $limitDate = (Get-Date).AddDays(-$days)
+                $toDelete = $foundFiles | Where-Object { $_.LastWriteTime -lt $limitDate }
+                if ($toDelete.Count -gt 0) {
+                    Write-Log "Cleaning files older than $days days..." "STEP"
+                }
+            }
+            "2" {
+                $toDelete = $foundFiles
+                Write-Log "Cleaning ALL script files..." "STEP"
+            }
+            default {
+                Write-Host "  Cancelled." -ForegroundColor Gray
+                return
+            }
+        }
+    }
+    
+    if ($toDelete.Count -gt 0) {
+        foreach ($file in $toDelete) {
+            # Skip the file currently being written to
+            if ($file.FullName -eq $logFile) {
+                Write-Host "    Skipping active log file: $($file.Name)" -ForegroundColor Gray
+                continue
+            }
+            
+            try {
+                Remove-Item -Path $file.FullName -Force -ErrorAction Stop
+                Write-Host "    Deleted: $($file.Name)" -ForegroundColor DarkGray
+            }
+            catch {
+                Write-Host "    Failed to delete: $($file.Name)" -ForegroundColor Red
+            }
+        }
+        Write-Host "`n  Cleanup complete. Removed $($toDelete.Count) files." -ForegroundColor Green
+    }
+    else {
+        Write-Host "  No matching files found to delete." -ForegroundColor Green
+    }
+    
+    Wait-KeyPress
+}
+
+# ============================================
+# 17. SOFTWARE UPDATE MANAGER (WINGET)
+# ============================================
+function Update-Software {
+    Write-Host "`n========================================" -ForegroundColor Cyan
+    Write-Host "SOFTWARE UPDATE MANAGER (WINGET)" -ForegroundColor Cyan
+    Write-Host "========================================`n" -ForegroundColor Cyan
+    
+    # Check if winget is available
+    Write-Log "Checking for winget..." "STEP"
+    $wingetCmd = Get-Command winget -ErrorAction SilentlyContinue
+    if (-not $wingetCmd) {
+        Write-Log "Winget is not installed or not in PATH" "WARNING"
+        
+        # ── Diagnose WHY winget is missing ──
+        Write-Host "`n  Winget not found. Diagnosing..." -ForegroundColor Yellow
+        
+        $osBuild = [System.Environment]::OSVersion.Version.Build
+        $isLTSC = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" -ErrorAction SilentlyContinue).EditionID -match "LTSC|LTSB|Server"
+        $hasStore = Get-AppxPackage -Name "Microsoft.WindowsStore" -ErrorAction SilentlyContinue
+        $hasAppInstaller = Get-AppxPackage -Name "Microsoft.DesktopAppInstaller" -ErrorAction SilentlyContinue
+        
+        if ($isLTSC) {
+            Write-Host "  Cause: Windows LTSC/LTSB detected (no Microsoft Store by default)" -ForegroundColor Red
+            Write-Host "  Fix:   Download winget manually from:" -ForegroundColor Gray
+            Write-Host "         https://github.com/microsoft/winget-cli/releases" -ForegroundColor Cyan
+            Write-Host "         Install the .msixbundle file from the latest release." -ForegroundColor Gray
+        }
+        elseif (-not $hasStore) {
+            Write-Host "  Cause: Microsoft Store is missing or disabled" -ForegroundColor Red
+            Write-Host "  Fix:   Re-enable the Store via Group Policy or re-register it:" -ForegroundColor Gray
+            Write-Host "         PowerShell: Get-AppxPackage *WindowsStore* | Foreach {Add-AppxPackage -Register `$(`$_.InstallLocation)\AppXManifest.xml}" -ForegroundColor DarkGray
+        }
+        elseif (-not $hasAppInstaller) {
+            Write-Host "  Cause: App Installer package is missing (winget is bundled with it)" -ForegroundColor Red
+        }
+        elseif ($osBuild -lt 17763) {
+            Write-Host "  Cause: Windows build $osBuild is too old (winget requires build 17763+)" -ForegroundColor Red
+            Write-Host "  Fix:   Update Windows to version 1809 or later." -ForegroundColor Gray
+        }
+        else {
+            Write-Host "  Cause: App Installer may need updating or re-registering" -ForegroundColor Red
+        }
+        
+        # ── Offer one-click install from Microsoft Store ──
+        if ($hasStore -and -not $isLTSC) {
+            Write-Host ""
+            if (Get-ValidYN "  Open Microsoft Store to install/update App Installer (winget)?") {
+                Start-Process "ms-windows-store://pdp/?productid=9NBLGGH4NNS1"
+                Write-Log "Opened Microsoft Store for App Installer" "SUCCESS"
+                Write-Host "  After installing, close and re-open this script." -ForegroundColor Gray
+            }
+        }
+        
+        # ── Fallback: still offer basic update checks without winget ──
+        Write-Host "`n  --- Fallback Options (no winget needed) ---" -ForegroundColor DarkCyan
+        Write-Host "    1 = Check pending Windows Updates" -ForegroundColor White
+        Write-Host "    2 = Refresh Microsoft Store apps" -ForegroundColor White
+        Write-Host "    0 = Back to menu" -ForegroundColor DarkGray
+        Write-Host "  Choice: " -ForegroundColor Yellow -NoNewline
+        $fallback = (Read-Host).Trim()
+        
+        switch ($fallback) {
+            "1" {
+                Write-Log "Checking pending Windows Updates..." "STEP"
+                Write-Host "  Searching (this may take a moment)..." -ForegroundColor Gray
+                try {
+                    $updateSession = New-Object -ComObject Microsoft.Update.Session
+                    $searcher = $updateSession.CreateUpdateSearcher()
+                    $result = $searcher.Search("IsInstalled=0")
+                    if ($result.Updates.Count -gt 0) {
+                        Write-Host "`n  Pending Updates ($($result.Updates.Count)):" -ForegroundColor Yellow
+                        foreach ($update in $result.Updates) {
+                            $size = [math]::Round($update.MaxDownloadSize / 1MB, 1)
+                            $severity = if ($update.MsrcSeverity) { " [$($update.MsrcSeverity)]" } else { "" }
+                            Write-Host "    - $($update.Title)$severity [$size MB]" -ForegroundColor White
+                        }
+                        Write-Host ""
+                        if (Get-ValidYN "  Open Windows Update to install these?") {
+                            Start-Process "ms-settings:windowsupdate"
+                            Write-Log "Opened Windows Update settings" "SUCCESS"
+                        }
+                    }
+                    else {
+                        Write-Log "Windows is fully up to date!" "SUCCESS"
+                    }
+                }
+                catch {
+                    Write-Log "Could not check Windows Updates: $($_.Exception.Message)" "WARNING"
+                }
+            }
+            "2" {
+                Write-Log "Refreshing Microsoft Store apps..." "STEP"
+                Write-Host "  Triggering Store app updates (runs in background)..." -ForegroundColor Gray
+                try {
+                    Get-CimInstance -Namespace "Root\cimv2\mdm\dmmap" -ClassName "MDM_EnterpriseModernAppManagement_AppManagement01" -ErrorAction Stop |
+                    Invoke-CimMethod -MethodName "UpdateScanMethod" -ErrorAction SilentlyContinue | Out-Null
+                    Write-Log "Store app update scan triggered" "SUCCESS"
+                    Write-Host "  Store apps will update in the background." -ForegroundColor Green
+                    Write-Host "  Check Microsoft Store > Library for progress." -ForegroundColor Gray
+                }
+                catch {
+                    # Fallback: open Store library page
+                    Write-Host "  Auto-trigger not available. Opening Store Library..." -ForegroundColor Yellow
+                    Start-Process "ms-windows-store://downloadsandupdates"
+                    Write-Log "Opened Store downloads page" "SUCCESS"
+                    Write-Host "  Click 'Get updates' in the Store to refresh all apps." -ForegroundColor Gray
+                }
+            }
+        }
+        
+        Wait-KeyPress
+        return
+    }
+    
+    $wingetVersion = & winget --version 2>$null
+    Write-Log "Winget found (version: $wingetVersion)" "SUCCESS"
+    
+    # Main menu when winget IS available
+    Write-Host "  Options:" -ForegroundColor Yellow
+    Write-Host "  1. Check for updates" -ForegroundColor White
+    Write-Host "  2. Update ALL packages" -ForegroundColor White
+    Write-Host "  3. Update a specific package" -ForegroundColor White
+    Write-Host "  4. Search & install a new package" -ForegroundColor White
+    Write-Host "  5. List installed packages" -ForegroundColor White
+    Write-Host "  0. Back to menu" -ForegroundColor White
+    Write-Host "`n  Choice (0-5): " -ForegroundColor Yellow -NoNewline
+    $updateChoice = (Read-Host).Trim()
+    
+    switch ($updateChoice) {
+        "1" {
+            # List available updates
+            Write-Log "Scanning for available updates..." "STEP"
+            Write-Host "  This may take a moment...`n" -ForegroundColor Gray
+            
+            $upgradeOutput = & winget upgrade --include-unknown --accept-source-agreements 2>$null
+            foreach ($line in $upgradeOutput) {
+                Write-Host "  $line" -ForegroundColor White
+            }
+            
+            # Count available updates - try multiple patterns for compatibility
+            $availableCount = 0
+            $upgradePattern = "(\d+)\s+upgrades?\s+available"
+            $countLine = $upgradeOutput | Where-Object { $_ -match $upgradePattern } | Select-Object -Last 1
+            if ($countLine -match $upgradePattern) {
+                $availableCount = [int]$Matches[1]
+            }
+            else {
+                # Fallback: count lines that look like package entries
+                $count = 0
+                foreach ($uline in $upgradeOutput) {
+                    if ($uline.Trim().Length -gt 20 -and $uline -notlike "Name*" -and $uline -notlike "---*") { $count++ }
+                }
+                $availableCount = $count
+            }
+            
+            if ($availableCount -gt 0) {
+                Write-Host "`n  $availableCount update(s) available." -ForegroundColor Yellow
+            }
+            else {
+                Write-Host "`n  All packages are up to date!" -ForegroundColor Green
+            }
+        }
+        "2" {
+            Write-Log "Updating all packages..." "STEP"
+            Write-Host "`n  Updating all packages. This may take several minutes..." -ForegroundColor Gray
+            Write-Host "  Some packages may show progress bars below.`n" -ForegroundColor DarkGray
+            
+            & winget upgrade --all --include-unknown --accept-source-agreements --accept-package-agreements 2>$null
+            
+            # Winget exit codes: 0=success, other=partial failure (common and usually harmless)
+            if ($LASTEXITCODE -eq 0) {
+                Write-Log "All packages updated successfully!" "SUCCESS"
+            }
+            else {
+                Write-Log "Update process completed (some packages may have been skipped)" "WARNING"
+                Write-Host "  Note: Non-zero exit code ($LASTEXITCODE) is common when:" -ForegroundColor Gray
+                Write-Host "    - A package has no newer version available" -ForegroundColor DarkGray
+                Write-Host "    - A package requires manual update (e.g., from its own installer)" -ForegroundColor DarkGray
+                Write-Host "    - A package was pinned to a specific version" -ForegroundColor DarkGray
+            }
+        }
+        "3" {
+            # First show available updates so user can see IDs
+            Write-Host "`n  Scanning for available updates..." -ForegroundColor Gray
+            $upgradeOutput = & winget upgrade --include-unknown --accept-source-agreements 2>$null
+            foreach ($line in $upgradeOutput) {
+                Write-Host "  $line" -ForegroundColor White
+            }
+            
+            Write-Host "`n  Enter the package ID (from the list above): " -ForegroundColor Yellow -NoNewline
+            $packageId = (Read-Host).Trim()
+            if (-not [string]::IsNullOrEmpty($packageId)) {
+                Write-Log "Updating $packageId..." "STEP"
+                & winget upgrade --id $packageId --accept-source-agreements --accept-package-agreements 2>$null
+                if ($LASTEXITCODE -eq 0) {
+                    Write-Log "$packageId updated successfully!" "SUCCESS"
+                }
+                else {
+                    Write-Log "Could not update $packageId (exit code: $LASTEXITCODE)" "WARNING"
+                    Write-Host "  Tip: Check the package ID is correct. Use winget list to verify." -ForegroundColor Gray
+                }
+            }
+            else {
+                Write-Host "  No package ID entered. Skipped." -ForegroundColor Gray
+            }
+        }
+        "4" {
+            Write-Host "`n  Enter search term (app name or keyword): " -ForegroundColor Yellow -NoNewline
+            $searchTerm = (Read-Host).Trim()
+            if (-not [string]::IsNullOrEmpty($searchTerm)) {
+                Write-Log "Searching for $searchTerm..." "STEP"
+                Write-Host ""
+                & winget search $searchTerm --accept-source-agreements 2>$null
+                
+                Write-Host "`n  Enter the package ID to install (or press Enter to cancel): " -ForegroundColor Yellow -NoNewline
+                $installId = (Read-Host).Trim()
+                if (-not [string]::IsNullOrEmpty($installId)) {
+                    Write-Host ""
+                    if (Get-ValidYN "  Install $($installId)?") {
+                        Write-Log "Installing $installId..." "STEP"
+                        & winget install --id $installId --accept-source-agreements --accept-package-agreements 2>$null
+                        if ($LASTEXITCODE -eq 0) {
+                            Write-Log "$installId installed successfully!" "SUCCESS"
+                        }
+                        else {
+                            Write-Log "Installation of $installId failed (exit code: $LASTEXITCODE)" "WARNING"
+                        }
+                    }
+                }
+                else {
+                    Write-Host "  Cancelled." -ForegroundColor Gray
+                }
+            }
+            else {
+                Write-Host "  No search term entered." -ForegroundColor Gray
+            }
+        }
+        "5" {
+            Write-Log "Listing installed packages..." "STEP"
+            Write-Host "  Loading...`n" -ForegroundColor Gray
+            & winget list --accept-source-agreements 2>$null
+        }
+        "0" {
+            return
+        }
+        default {
+            Write-Host "  Invalid choice." -ForegroundColor Red
+        }
+    }
+    
+    Wait-KeyPress
+}
+
+# ============================================
+# 18. REPAIR WINDOWS (SFC + DISM)
+# ============================================
+function Repair-Windows {
+    Write-Host "`n========================================" -ForegroundColor Cyan
+    Write-Host "REPAIR WINDOWS SYSTEM FILES" -ForegroundColor Cyan
+    Write-Host "========================================`n" -ForegroundColor Cyan
+    
+    Write-Host "  Choose a repair option:" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "  1. Full Repair (DISM + SFC + Component Cleanup)" -ForegroundColor White
+    Write-Host "     Best for: Corrupted Windows, update failures, blue screens" -ForegroundColor DarkGray
+    Write-Host "     Time: 15-30 minutes" -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "  2. Quick Scan (SFC only)" -ForegroundColor White
+    Write-Host "     Best for: Minor file corruption, quick check" -ForegroundColor DarkGray
+    Write-Host "     Time: 5-15 minutes" -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "  3. Image Repair (DISM only)" -ForegroundColor White
+    Write-Host "     Best for: When SFC reports it cannot fix files" -ForegroundColor DarkGray
+    Write-Host "     Time: 10-20 minutes" -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "  4. Disk Check (schedule chkdsk on next restart)" -ForegroundColor White
+    Write-Host "     Best for: Disk errors, bad sectors, file system corruption" -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "  5. View Recent System Errors" -ForegroundColor White
+    Write-Host "     Best for: Diagnosing crashes and failures" -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "  0. Back to menu" -ForegroundColor White
+    Write-Host "`n  Choice (0-5): " -ForegroundColor Yellow -NoNewline
+    $repairChoice = (Read-Host).Trim()
+    
+    $ranRepair = $false
+    
+    switch ($repairChoice) {
+        "1" {
+            Write-Host "`n  This will run DISM + SFC + Component Cleanup." -ForegroundColor Yellow
+            Write-Host "  Estimated time: 15-30 minutes." -ForegroundColor Gray
+            if (-not (Get-ValidYN "`n  Continue?")) { return }
+            
+            # DISM
+            Write-Log "`n[1/3] Running DISM (Repair Windows Image)..." "STEP"
+            Write-Host "  This may take 10-15 minutes. Progress will show below...`n" -ForegroundColor Gray
+            
+            $dismResult = Start-Process -FilePath "dism.exe" -ArgumentList "/Online /Cleanup-Image /RestoreHealth" -Wait -PassThru -NoNewWindow
+            
+            if ($dismResult.ExitCode -eq 0) {
+                Write-Log "DISM repair completed successfully" "SUCCESS"
+            }
+            else {
+                Write-Log "DISM completed with exit code: $($dismResult.ExitCode)" "WARNING"
+                Write-Host "    Tip: If DISM failed, ensure you have an internet connection" -ForegroundColor Gray
+                Write-Host "    Alternative: Use a Windows ISO as source:" -ForegroundColor Gray
+                Write-Host "    DISM /Online /Cleanup-Image /RestoreHealth /Source:WIM:D:\sources\install.wim:1" -ForegroundColor DarkGray
+            }
+            
+            # SFC
+            Write-Log "`n[2/3] Running SFC (System File Checker)..." "STEP"
+            Write-Host "  This may take 5-15 minutes...`n" -ForegroundColor Gray
+            
+            $sfcResult = Start-Process -FilePath "sfc.exe" -ArgumentList "/scannow" -Wait -PassThru -NoNewWindow
+            
+            if ($sfcResult.ExitCode -eq 0) {
+                Write-Log "SFC scan completed successfully" "SUCCESS"
+            }
+            else {
+                Write-Log "SFC completed with exit code: $($sfcResult.ExitCode)" "WARNING"
+                Write-Host "    Tip: If SFC found issues it couldn't fix, re-run DISM first, then SFC again" -ForegroundColor Gray
+                Write-Host "    Check: C:\Windows\Logs\CBS\CBS.log for detailed SFC results" -ForegroundColor Gray
+            }
+            
+            # Component Store Cleanup
+            Write-Log "`n[3/3] Analyzing Component Store..." "STEP"
+            $analyzeResult = Start-Process -FilePath "dism.exe" -ArgumentList "/Online /Cleanup-Image /AnalyzeComponentStore" -Wait -PassThru -NoNewWindow
+            
+            if ($analyzeResult.ExitCode -eq 0) {
+                Write-Log "Component store analysis complete" "SUCCESS"
+                
+                if (Get-ValidYN "`n  Clean up component store? (frees disk space)") {
+                    $cleanResult = Start-Process -FilePath "dism.exe" -ArgumentList "/Online /Cleanup-Image /StartComponentCleanup /ResetBase" -Wait -PassThru -NoNewWindow
+                    if ($cleanResult.ExitCode -eq 0) {
+                        Write-Log "Component store cleaned up successfully" "SUCCESS"
+                    }
+                    else {
+                        Write-Log "Component cleanup finished with exit code: $($cleanResult.ExitCode)" "WARNING"
+                    }
+                }
+            }
+            else {
+                Write-Log "Component store analysis failed (exit code: $($analyzeResult.ExitCode))" "WARNING"
+            }
+            
+            $ranRepair = $true
+        }
+        "2" {
+            Write-Host "`n  Running SFC (System File Checker)..." -ForegroundColor Yellow
+            Write-Host "  This may take 5-15 minutes. Progress will show below...`n" -ForegroundColor Gray
+            
+            $sfcResult = Start-Process -FilePath "sfc.exe" -ArgumentList "/scannow" -Wait -PassThru -NoNewWindow
+            
+            if ($sfcResult.ExitCode -eq 0) {
+                Write-Log "SFC scan completed successfully -- no integrity violations found" "SUCCESS"
+            }
+            else {
+                Write-Log "SFC completed with exit code: $($sfcResult.ExitCode)" "WARNING"
+                Write-Host "    Tip: If SFC found issues, run Option 1 (Full Repair) to fix the image first" -ForegroundColor Gray
+                Write-Host "    Check: C:\Windows\Logs\CBS\CBS.log for detailed results" -ForegroundColor Gray
+            }
+            
+            $ranRepair = $true
+        }
+        "3" {
+            Write-Host "`n  Running DISM (Repair Windows Image)..." -ForegroundColor Yellow
+            Write-Host "  This may take 10-20 minutes. Progress will show below...`n" -ForegroundColor Gray
+            
+            $dismResult = Start-Process -FilePath "dism.exe" -ArgumentList "/Online /Cleanup-Image /RestoreHealth" -Wait -PassThru -NoNewWindow
+            
+            if ($dismResult.ExitCode -eq 0) {
+                Write-Log "DISM image repair completed successfully" "SUCCESS"
+                Write-Host "  Tip: Now run SFC (Option 2) to verify system files are intact" -ForegroundColor Gray
+            }
+            else {
+                Write-Log "DISM completed with exit code: $($dismResult.ExitCode)" "WARNING"
+                Write-Host "    Tip: Ensure internet connection is active for Windows Update source" -ForegroundColor Gray
+            }
+            
+            $ranRepair = $true
+        }
+        "4" {
+            Write-Host "`n  This will schedule a disk check on the next restart." -ForegroundColor Yellow
+            Write-Host "  The check runs BEFORE Windows boots and may take 30-60 minutes." -ForegroundColor Gray
+            
+            if (Get-ValidYN "`n  Schedule disk check on C: for next restart?") {
+                try {
+                    & cmd /c "echo Y | chkdsk C: /F /R /X" 2>&1 | Out-Null
+                    # chkdsk on the system drive always says "cannot lock" and schedules for reboot
+                    Write-Log "Disk check scheduled for next restart" "SUCCESS"
+                    Write-Host "  The check will run automatically on your next restart." -ForegroundColor Green
+                    Write-Host "  Do NOT interrupt the check -- let it complete fully." -ForegroundColor Yellow
+                    $ranRepair = $true
+                }
+                catch {
+                    Write-Log "Could not schedule disk check: $($_.Exception.Message)" "WARNING"
+                }
+            }
+        }
+        "5" {
+            Write-Host "`n  Recent System Errors (last 24 hours):" -ForegroundColor Yellow
+            Write-Host "  (These are pre-existing errors, not caused by this tool)`n" -ForegroundColor DarkGray
+            try {
+                $errors = Get-WinEvent -FilterHashtable @{
+                    LogName   = 'System'
+                    Level     = 2  # Error
+                    StartTime = (Get-Date).AddHours(-24)
+                } -MaxEvents 10 -ErrorAction SilentlyContinue
+                
+                if ($errors) {
+                    foreach ($evt in $errors) {
+                        $msg = if ($evt.Message) { $evt.Message.Substring(0, [Math]::Min(100, $evt.Message.Length)) } else { "(No message)" }
+                        $timeStr = $evt.TimeCreated.ToString('HH:mm')
+                        $source = $evt.ProviderName
+                        Write-Host "  [$timeStr] [$source]" -ForegroundColor Red -NoNewline
+                        Write-Host " $msg" -ForegroundColor White
+                    }
+                    Write-Host "`n  Total: $($errors.Count) error(s) in the last 24 hours" -ForegroundColor Gray
+                }
+                else {
+                    Write-Host "  No system errors in the last 24 hours!" -ForegroundColor Green
+                }
+            }
+            catch {
+                Write-Host "  Could not read event logs" -ForegroundColor Gray
+                Write-Host "  Tip: Event Log service may be disabled or logs may be cleared" -ForegroundColor DarkGray
+            }
+        }
+        "0" {
+            return
+        }
+        default {
+            Write-Host "  Invalid choice." -ForegroundColor Red
+        }
+    }
+    
+    # Offer restart if a repair was performed
+    if ($ranRepair) {
+        Write-Log "`nWindows repair process complete!" "SUCCESS"
+        Write-Host ""
+        if (Get-ValidYN "  A restart is recommended after repairs. Restart now?") {
+            Write-Host "`n  Restarting in 10 seconds... Press Ctrl+C to cancel" -ForegroundColor Yellow
+            for ($i = 10; $i -gt 0; $i--) {
+                Write-Host "`r  Restarting in $i seconds...  " -ForegroundColor Yellow -NoNewline
+                Start-Sleep -Seconds 1
+            }
+            Restart-Computer -Force
+        }
+    }
+    
+    Wait-KeyPress
+}
+
+# ============================================
+# 19. CREATE RESTORE POINT
+# ============================================
+function New-RestorePoint {
+    Write-Host "`n========================================" -ForegroundColor Cyan
+    Write-Host "CREATE SYSTEM RESTORE POINT" -ForegroundColor Cyan
+    Write-Host "========================================`n" -ForegroundColor Cyan
+    
+    # Show existing restore points
+    Write-Log "Existing restore points:" "STEP"
+    try {
+        $restorePoints = Get-ComputerRestorePoint -ErrorAction SilentlyContinue
+        if ($restorePoints) {
+            foreach ($rp in $restorePoints | Select-Object -Last 5) {
+                Write-Host "  [$($rp.SequenceNumber)] $($rp.Description) - $($rp.CreationTime)" -ForegroundColor Gray
+            }
+        }
+        else {
+            Write-Host "  No existing restore points found" -ForegroundColor Yellow
+        }
+    }
+    catch {
+        Write-Host "  Could not retrieve restore points" -ForegroundColor Gray
+    }
+    
+    if (Get-ValidYN "`nCreate new restore point?") {
+        Write-Host "Enter description (or press Enter for default): " -ForegroundColor Yellow -NoNewline
+        $desc = Read-Host
+        if ([string]::IsNullOrEmpty($desc)) {
+            $desc = "Manual Restore Point - $(Get-Date -Format 'yyyy-MM-dd HH:mm')"
+        }
+        
+        New-SafeRestorePoint -Description $desc
+    }
+    
+    Wait-KeyPress
+}
+
+# ============================================
+# 20. RUN ALL OPTIMIZATIONS
+# ============================================
+function Invoke-AllOptimizations {
+    Write-Host "`n========================================" -ForegroundColor Cyan
+    Write-Host "RUN ALL OPTIMIZATIONS (SAFE MODE)" -ForegroundColor Cyan
+    Write-Host "========================================`n" -ForegroundColor Cyan
+    
+    Write-Host "This will run the following optimizations:" -ForegroundColor Yellow
+    Write-Host ""
+    Write-Host "  STEP 1: Create System Restore Point (Safety net)" -ForegroundColor White
+    Write-Host "  STEP 2: Optimize Windows Services" -ForegroundColor White
+    Write-Host "       -> Disable 7 telemetry/bloat services (DiagTrack, MapsBroker, etc.)" -ForegroundColor DarkGray
+    Write-Host "       -> Smart detection: keeps Spooler if printers found, WbioSrvc if biometric" -ForegroundColor DarkGray
+    Write-Host "  STEP 3: Optimize Startup Programs" -ForegroundColor White
+    Write-Host "       -> Scan registry for non-essential startup entries" -ForegroundColor DarkGray
+    Write-Host "       -> Disable matching scheduled tasks (with protected whitelist)" -ForegroundColor DarkGray
+    Write-Host "  STEP 4: Optimize RAM & Performance" -ForegroundColor White
+    Write-Host "       -> Trim idle process working sets (skip 22 protected processes)" -ForegroundColor DarkGray
+    Write-Host "       -> Disable animations, set High Performance power plan" -ForegroundColor DarkGray
+    Write-Host "  STEP 5: Privacy & Telemetry Shield" -ForegroundColor White
+    Write-Host "       -> Apply 15+ privacy registry settings (telemetry, ad ID, location)" -ForegroundColor DarkGray
+    Write-Host "  STEP 6: Deep Disk Cleanup" -ForegroundColor White
+    Write-Host "       -> Clear temp files, browser caches (12 browsers), Windows Update cache" -ForegroundColor DarkGray
+    Write-Host "       -> Old logs, thumbnails + SSD TRIM / HDD Defrag" -ForegroundColor DarkGray
+    Write-Host "  STEP 7: Fix Network Issues" -ForegroundColor White
+    Write-Host "       -> Flush DNS, optimize TCP, configure DNS provider" -ForegroundColor DarkGray
+    Write-Host "       -> VPN/VM adapters auto-detected and protected" -ForegroundColor DarkGray
+    Write-Host "  STEP 8: Cleanup Old Logs & Reports" -ForegroundColor White
+    Write-Host "       -> Auto-delete script logs/reports older than $($Config.LogCleanupDays) days" -ForegroundColor DarkGray
+    Write-Host ""
+    Write-Host "Estimated time: 5-15 minutes" -ForegroundColor Gray
+    Write-Host ""
+    do {
+        Write-Host "Continue? (Y/N): " -ForegroundColor Yellow -NoNewline
+        $response = Read-Host
+    } while ($response -notmatch '^[YyNn]$')
+    
+    if ($response -match '^[Nn]$') {
+        return
+    }
+    
+    $totalSteps = 8
+    $startTime = Get-Date
+    
+    Write-Host "`n========================================" -ForegroundColor Green
+    Write-Host "STARTING FULL OPTIMIZATION..." -ForegroundColor Green
+    Write-Host "========================================`n" -ForegroundColor Green
+    
+    $script:skipPause = $true
+    $script:LoggingEnabled = $true
+    
+    $stepNames = @(
+        "Creating Restore Point",
+        "Optimizing Services",
+        "Optimizing Startup",
+        "Optimizing RAM & Performance",
+        "Applying Privacy Shield",
+        "Deep Cleaning Disk",
+        "Fixing Network",
+        "Cleaning Old Logs & Reports"
     )
     
-    $results = @()
-    foreach ($folder in $foldersToScan) {
-        if (Test-Path $folder.Path) {
-            try {
-                $size = (Get-ChildItem -Path $folder.Path -Recurse -File -ErrorAction SilentlyContinue |
-                         Measure-Object -Property Length -Sum -ErrorAction SilentlyContinue).Sum
-                if (-not $size) { $size = 0 }
-                $results += [PSCustomObject]@{
-                    Label  = $folder.Label
-                    Path   = $folder.Path
-                    SizeGB = [math]::Round($size / 1GB, 2)
-                    SizeMB = [math]::Round($size / 1MB, 0)
+    # Step functions with error resilience
+    $stepFunctions = @(
+        { New-SafeRestorePoint },
+        { Optimize-Services },
+        { Optimize-Startup },
+        { Optimize-RAM },
+        { Set-PrivacyShield },
+        { Invoke-DiskCleanup -Auto },
+        { Repair-Network },
+        { Remove-OldLogs -Auto }
+    )
+    
+    $completedSteps = 0
+    $failedSteps = @()
+    
+    for ($s = 0; $s -lt $totalSteps; $s++) {
+        $stepNum = $s + 1
+        Write-Host "`n  >>> [$stepNum/$totalSteps] $($stepNames[$s])..." -ForegroundColor Cyan
+        
+        try {
+            & $stepFunctions[$s]
+            $completedSteps++
+        }
+        catch {
+            Write-Log "Step $stepNum ($($stepNames[$s])) failed: $($_.Exception.Message)" "ERROR"
+            $failedSteps += $stepNames[$s]
+            if ($stepNum -lt $totalSteps) {
+                if (-not (Get-ValidYN "  Step failed. Continue with remaining steps?")) {
+                    Write-Log "Optimization aborted by user after step $stepNum failure" "WARNING"
+                    break
                 }
-            } catch {}
+            }
         }
     }
     
-    # Sort by size and display with visual bars
-    $results = $results | Sort-Object SizeGB -Descending
-    $maxSize = ($results | Select-Object -First 1).SizeGB
-    if (-not $maxSize -or $maxSize -eq 0) { $maxSize = 1 }
     
-    Write-Host ("  {0,-25} {1,10}  {2}" -f "FOLDER", "SIZE", "") -ForegroundColor DarkCyan
-    Write-Host "  $("-" * 55)" -ForegroundColor DarkGray
+    $endTime = Get-Date
+    $duration = $endTime - $startTime
+    $script:skipPause = $false
+    $script:LoggingEnabled = $false
     
-    foreach ($r in $results) {
-        if ($r.SizeMB -lt 1) { continue }  # Skip empty folders
-        
-        $barLen = [math]::Max(1, [math]::Floor(($r.SizeGB / $maxSize) * 20))
-        $sizeBar = $block.ToString() * $barLen
-        
-        $sizeStr = if ($r.SizeGB -ge 1) { "$($r.SizeGB) GB" } else { "$($r.SizeMB) MB" }
-        $color = if ($r.SizeGB -gt 10) {"Red"} elseif ($r.SizeGB -gt 2) {"Yellow"} else {"White"}
-        
-        Write-Host ("  {0,-25} {1,10}  " -f $r.Label, $sizeStr) -NoNewline -ForegroundColor $color
-        Write-Host $sizeBar -ForegroundColor $color
+    Write-Host "`n========================================" -ForegroundColor Green
+    Write-Host "ALL OPTIMIZATIONS COMPLETE!" -ForegroundColor Green
+    Write-Host "========================================" -ForegroundColor Green
+    Write-Host ""
+    Write-Host "  Completed: $completedSteps/$totalSteps steps" -ForegroundColor Gray
+    if ($failedSteps.Count -gt 0) {
+        Write-Host "  Failed: $($failedSteps -join ', ')" -ForegroundColor Red
     }
-    
-    # Recommendations
-    Write-Host "`n  Recommendations:" -ForegroundColor Yellow
-    
-    $downloads = $results | Where-Object { $_.Label -eq "Downloads" }
-    if ($downloads -and $downloads.SizeGB -gt 2) {
-        Write-Host "    - Downloads folder is $($downloads.SizeGB) GB. Review and delete old files." -ForegroundColor White
-    }
-    
-    $tempTotal = ($results | Where-Object { $_.Label -like "*Temp*" -or $_.Label -like "*Cache*" } | Measure-Object -Property SizeMB -Sum).Sum
-    if ($tempTotal -gt 500) {
-        $tempGB = [math]::Round($tempTotal / 1024, 1)
-        Write-Host "    - Temp/cache files total ~$tempGB GB. Run Deep Disk Clean (Option 8)." -ForegroundColor White
-    }
-    
-    $videos = $results | Where-Object { $_.Label -eq "Videos" }
-    if ($videos -and $videos.SizeGB -gt 10) {
-        Write-Host "    - Videos folder is $($videos.SizeGB) GB. Move to external drive?" -ForegroundColor White
-    }
-    
-    $browserData = ($results | Where-Object { $_.Label -like "*Data" } | Measure-Object -Property SizeMB -Sum).Sum
-    if ($browserData -gt 1000) {
-        Write-Host "    - Browser data is $([math]::Round($browserData/1024, 1)) GB. Clear caches via Option 8." -ForegroundColor White
-    }
-    
-    if ($volume -and $freeGB -ne $null) {
-        if ($freeGB -lt 20) {
-            Write-Host "    - LOW DISK SPACE! Only $freeGB GB free. Take action soon." -ForegroundColor Red
-        } else {
-            Write-Host "    - Disk space looks healthy." -ForegroundColor Green
+    Write-Host "  Duration: $($duration.Minutes) minutes $($duration.Seconds) seconds" -ForegroundColor Gray
+    Write-Host "  Log file: $logFile" -ForegroundColor Gray
+    Write-Host ""
+    Write-Host "IMPORTANT: Restart your laptop for all changes to take effect!" -ForegroundColor Red
+    Write-Host ""
+    Write-Host "Restart now? (Y/N): " -ForegroundColor Yellow -NoNewline
+    do {
+        $restart = Read-Host
+        if ($restart -notmatch '^[YyNn]$') {
+            Write-Host "  Please enter Y or N: " -ForegroundColor Yellow -NoNewline
         }
+    } while ($restart -notmatch '^[YyNn]$')
+    
+    if ($restart -match '^[Yy]$') {
+        Write-Host "`nRestarting in 15 seconds... Press Ctrl+C to cancel" -ForegroundColor Yellow
+        for ($i = 15; $i -gt 0; $i--) {
+            Write-Host "`r  Restarting in $i seconds...  " -ForegroundColor Yellow -NoNewline
+            Start-Sleep -Seconds 1
+        }
+        Restart-Computer -Force
     }
     
     Wait-KeyPress
@@ -3495,32 +3782,32 @@ do {
     $choice = (Read-Host).Trim()
     
     switch ($choice) {
-        "1"  { Get-SystemInfo }
-        "2"  { Get-QuickStatus }
-        "3"  { Get-HeavyProcesses }
-        "4"  { Get-BatteryHealth }
-        "5"  { Get-DiskHealth }
-        "6"  { Optimize-Startup }
-        "7"  { Optimize-RAM }
-        "8"  { Invoke-DiskCleanup }
-        "9"  { Repair-Network }
-        "10" { Optimize-Services }
+        "1" { Get-SystemInfo }
+        "2" { Get-QuickStatus }
+        "3" { Get-HeavyProcesses }
+        "4" { Get-BatteryHealth }
+        "5" { Get-DiskHealth }
+        "6" { Get-StorageAnalysis }
+        "7" { Optimize-Startup }
+        "8" { Optimize-RAM }
+        "9" { Optimize-Services }
+        "10" { Repair-Network }
         "11" { Set-PrivacyShield }
         "12" { Invoke-WindowsUpdateManager }
-        "13" { Repair-Windows }
-        "14" { New-RestorePoint }
+        "13" { Invoke-DiskCleanup }
+        "14" { Remove-Bloatware }
         "15" { Remove-OldRestorePoints }
         "16" { Remove-OldLogs }
-        "17" { Invoke-AllOptimizations }
-        "18" { Update-Software }
-        "19" { Remove-Bloatware }
-        "20" { Get-StorageAnalysis }
+        "17" { Update-Software }
+        "18" { Repair-Windows }
+        "19" { New-RestorePoint }
+        "20" { Invoke-AllOptimizations }
         { $_ -eq "H" -or $_ -eq "h" } {
             Write-Host "`n========================================" -ForegroundColor Cyan
             Write-Host "   HELP - What Each Option Does" -ForegroundColor Cyan
             Write-Host "========================================" -ForegroundColor Cyan
             Write-Host ""
-            Write-Host "  DIAGNOSTICS (Read-only - no changes made):" -ForegroundColor Yellow
+            Write-Host "  DIAGNOSTICS & ANALYSIS:" -ForegroundColor Yellow
             Write-Host "   1. Full System Health Report" -ForegroundColor White
             Write-Host "      10-section report: OS, CPU, RAM, disk, GPU, startup," -ForegroundColor Gray
             Write-Host "      services, network, license status. Saved to Desktop." -ForegroundColor Gray
@@ -3533,23 +3820,25 @@ do {
             Write-Host "   5. Disk & Hardware Health" -ForegroundColor White
             Write-Host "      S.M.A.R.T. data, temperatures, reliability counters," -ForegroundColor Gray
             Write-Host "      fragmentation analysis." -ForegroundColor Gray
+            Write-Host "   6. Storage Space Analyzer" -ForegroundColor White
+            Write-Host "      Scans 12 key folders with visual bars. Shows recommendations" -ForegroundColor Gray
+            Write-Host "      for Downloads, temp/cache, browser data, low disk space." -ForegroundColor Gray
             Write-Host ""
-            Write-Host "  OPTIMIZATION (Makes changes - creates restore point first):" -ForegroundColor Yellow
-            Write-Host "   6. Optimize Startup" -ForegroundColor White
+            Write-Host "  PERFORMANCE & TWEAKS:" -ForegroundColor Yellow
+            Write-Host "   7. Optimize Startup" -ForegroundColor White
             Write-Host "      Scans & disables bloatware startup entries + related tasks." -ForegroundColor Gray
             Write-Host "      Database of 80+ known non-essential programs." -ForegroundColor Gray
-            Write-Host "   7. Optimize RAM & Performance" -ForegroundColor White
+            Write-Host "   8. Optimize RAM & Performance" -ForegroundColor White
             Write-Host "      Trims idle working sets (EmptyWorkingSet API), disables" -ForegroundColor Gray
             Write-Host "      animations, High Performance power plan, Game DVR, Cortana." -ForegroundColor Gray
-            Write-Host "   8. Deep Disk Clean" -ForegroundColor White
-            Write-Host "      7-step cleanup: temp, 12 browser caches, WU cache, old" -ForegroundColor Gray
-            Write-Host "      logs, thumbnails, CleanMgr, SSD TRIM / HDD defrag." -ForegroundColor Gray
-            Write-Host "   9. Fix Network Issues" -ForegroundColor White
+            Write-Host "   9. Optimize Windows Services" -ForegroundColor White
+            Write-Host "      Disables telemetry, maps, retail demo services. SSD/HDD" -ForegroundColor Gray
+            Write-Host "      auto-detect for Superfetch. Tunes Defender CPU." -ForegroundColor Gray
+            Write-Host "  10. Fix Network Issues" -ForegroundColor White
             Write-Host "      DNS flush, TCP/IP reset (skips VPN/VM adapters), IP renew," -ForegroundColor Gray
             Write-Host "      TCP tuning, DNS provider (Google/Cloudflare/Quad9)." -ForegroundColor Gray
-            Write-Host "  10. Optimize Windows Services" -ForegroundColor White
-            Write-Host "      Disables telemetry, maps, retail demo services. SSD/HDD" -ForegroundColor Gray
-            Write-Host "      auto-detect for Superfetch. Tunes Defender CPU to $($Config.DefenderMaxCpuPercent)%." -ForegroundColor Gray
+            Write-Host ""
+            Write-Host "  PRIVACY & SECURITY:" -ForegroundColor Yellow
             Write-Host "  11. Privacy & Telemetry Shield" -ForegroundColor White
             Write-Host "      15+ settings across 8 categories: telemetry, ad ID," -ForegroundColor Gray
             Write-Host "      location, Bing search, activity history, clipboard sync." -ForegroundColor Gray
@@ -3557,39 +3846,39 @@ do {
             Write-Host "      Check/pause (1-$($Config.MaxUpdatePauseDays) days), resume, set active hours," -ForegroundColor Gray
             Write-Host "      clear stuck update cache." -ForegroundColor Gray
             Write-Host ""
-            Write-Host "  REPAIR & MAINTENANCE:" -ForegroundColor Yellow
-            Write-Host "  13. Repair Windows" -ForegroundColor White
-            Write-Host "      5 options: Full (DISM+SFC+Cleanup), Quick SFC, DISM only," -ForegroundColor Gray
-            Write-Host "      schedule chkdsk, view recent system errors." -ForegroundColor Gray
-            Write-Host "  14. Create Restore Point" -ForegroundColor White
-            Write-Host "      Creates a verified system restore point with custom name." -ForegroundColor Gray
+            Write-Host "  CLEANING & DEBLOATING:" -ForegroundColor Yellow
+            Write-Host "  13. Deep Disk Clean" -ForegroundColor White
+            Write-Host "      7-step cleanup: temp, 12 browser caches, WU cache, old" -ForegroundColor Gray
+            Write-Host "      logs, thumbnails, CleanMgr, SSD TRIM / HDD defrag." -ForegroundColor Gray
+            Write-Host "  14. Bloatware Uninstaller" -ForegroundColor White
+            Write-Host "      2-tier scan: definite junk (30+) + popular apps (25+)." -ForegroundColor Gray
+            Write-Host "      4 modes: junk only, all, junk+choose, individual Y/N." -ForegroundColor Gray
             Write-Host "  15. Clean Old Restore Points" -ForegroundColor White
             Write-Host "      Deletes all but the $($Config.RestorePointsToKeep) newest restore points to free space." -ForegroundColor Gray
             Write-Host "  16. Cleanup Script Logs & Reports" -ForegroundColor White
             Write-Host "      Deletes optimizer logs, health reports, and battery reports." -ForegroundColor Gray
             Write-Host "      Remove old files (>$($Config.LogCleanupDays) days) or clear all history." -ForegroundColor Gray
             Write-Host ""
-            Write-Host "  ALL-IN-ONE:" -ForegroundColor Yellow
-            Write-Host "  17. Run ALL Optimizations" -ForegroundColor White
-            Write-Host "      8-step pipeline: Restore Point, Services, Startup, RAM," -ForegroundColor Gray
-            Write-Host "      Privacy, Disk Clean, Network, Log Cleanup. Error resilient." -ForegroundColor Gray
-            Write-Host ""
-            Write-Host "  EXTRAS:" -ForegroundColor Yellow
-            Write-Host "  18. Software Update Manager" -ForegroundColor White
+            Write-Host "  MAINTENANCE & REPAIRS:" -ForegroundColor Yellow
+            Write-Host "  17. Software Update Manager" -ForegroundColor White
             Write-Host "      Winget: check, update all, update specific, search & install," -ForegroundColor Gray
             Write-Host "      list installed. Fallback mode if winget is missing." -ForegroundColor Gray
-            Write-Host "  19. Bloatware Uninstaller" -ForegroundColor White
-            Write-Host "      2-tier scan: definite junk (30+) + popular apps (25+)." -ForegroundColor Gray
-            Write-Host "      4 modes: junk only, all, junk+choose, individual Y/N." -ForegroundColor Gray
-            Write-Host "  20. Storage Space Analyzer" -ForegroundColor White
-            Write-Host "      Scans 12 key folders with visual bars. Shows recommendations" -ForegroundColor Gray
-            Write-Host "      for Downloads, temp/cache, browser data, low disk space." -ForegroundColor Gray
+            Write-Host "  18. Repair Windows" -ForegroundColor White
+            Write-Host "      5 options: Full (DISM+SFC+Cleanup), Quick SFC, DISM only," -ForegroundColor Gray
+            Write-Host "      schedule chkdsk, view recent system errors." -ForegroundColor Gray
+            Write-Host "  19. Create Restore Point" -ForegroundColor White
+            Write-Host "      Creates a verified system restore point with custom name." -ForegroundColor Gray
+            Write-Host ""
+            Write-Host "  AUTOMATION:" -ForegroundColor Yellow
+            Write-Host "  20. Run ALL Optimizations" -ForegroundColor White
+            Write-Host "      8-step pipeline: Restore Point, Services, Startup, RAM," -ForegroundColor Gray
+            Write-Host "      Privacy, Disk Clean, Network, Log Cleanup. Error resilient." -ForegroundColor Gray
             Write-Host ""
             Write-Host "  GitHub: https://github.com/Prakhar0206/WinOptimizer" -ForegroundColor DarkCyan
             Write-Host ""
             Wait-KeyPress
         }
-        "0"  { 
+        "0" { 
             $exitMsg1 = "Thanks for using the Optimizer v$scriptVersion!"
             $exitMsg2 = "Keep your laptop running smoothly!"
             Write-Host ""
