@@ -486,7 +486,8 @@ Status: $(if($cpu.LoadPercentage -lt 30){"Idle"}elseif($cpu.LoadPercentage -lt 6
     }
     
     try {
-        $ping = Test-Connection -ComputerName 8.8.8.8 -Count 3 -ErrorAction Stop
+        # Note: -TimeoutSeconds is available in PS 7. For PS 5.1 we use a quick hack with WMI or accept the count 1 if offline, but -Count 1 is fast enough
+        $ping = Test-Connection -ComputerName 8.8.8.8 -Count 1 -ErrorAction Stop
         $latencyProp = if ($ping[0].PSObject.Properties['Latency']) { 'Latency' } else { 'ResponseTime' }
         $avgLatency = [math]::Round(($ping | Measure-Object -Property $latencyProp -Average).Average, 2)
         $minLatency = ($ping | Measure-Object -Property $latencyProp -Minimum).Minimum
@@ -622,7 +623,10 @@ function Get-HeavyProcesses {
     if ($killPID -ne "0" -and $killPID -ne "") {
         try {
             $procToKill = Get-Process -Id $killPID -ErrorAction Stop
-            if (Get-ValidYN "Kill '$($procToKill.ProcessName)' (PID: $killPID)?") {
+            if ($procToKill.ProcessName -match '^(System|smss|csrss|wininit|services|explorer|lsass|svchost)$') {
+                Write-Log "Cannot kill critical system process: $($procToKill.ProcessName)" "ERROR"
+            }
+            elseif (Get-ValidYN "Kill '$($procToKill.ProcessName)' (PID: $killPID)?") {
                 Stop-Process -Id $killPID -Force -ErrorAction Stop
                 Write-Log "Killed process: $($procToKill.ProcessName) (PID: $killPID)" "SUCCESS"
             }
@@ -1905,7 +1909,7 @@ function Repair-Network {
     Write-Host "Testing current connection..." -ForegroundColor Gray
     $beforeLatency = $null
     try {
-        $beforePing = Test-Connection -ComputerName 8.8.8.8 -Count 3 -ErrorAction Stop
+        $beforePing = Test-Connection -ComputerName 8.8.8.8 -Count 1 -ErrorAction Stop
         $latencyProp = if ($beforePing[0].PSObject.Properties['Latency']) { 'Latency' } else { 'ResponseTime' }
         $beforeLatency = [math]::Round(($beforePing | Measure-Object -Property $latencyProp -Average).Average, 2)
         Write-Host "  Current latency: ${beforeLatency}ms" -ForegroundColor Gray
@@ -2052,7 +2056,7 @@ function Repair-Network {
     Start-Sleep -Seconds 3
     Write-Host "`nTesting connection after fixes..." -ForegroundColor Gray
     try {
-        $afterPing = Test-Connection -ComputerName 8.8.8.8 -Count 3 -ErrorAction Stop
+        $afterPing = Test-Connection -ComputerName 8.8.8.8 -Count 1 -ErrorAction Stop
         $latencyProp = if ($afterPing[0].PSObject.Properties['Latency']) { 'Latency' } else { 'ResponseTime' }
         $afterLatency = [math]::Round(($afterPing | Measure-Object -Property $latencyProp -Average).Average, 2)
         Write-Host "  New latency: ${afterLatency}ms" -ForegroundColor Gray
@@ -2679,8 +2683,15 @@ function Invoke-DiskCleanup {
                 Write-Log "Drive $($vol.DriveLetter): SSD TRIM completed" "SUCCESS"
             }
             elseif ($diskType -eq "HDD") {
-                Optimize-Volume -DriveLetter $vol.DriveLetter -Defrag -ErrorAction SilentlyContinue | Out-Null
-                Write-Log "Drive $($vol.DriveLetter): Defrag completed" "SUCCESS"
+                Write-Log "Drive $($vol.DriveLetter): Running HDD Defrag (this will take time)..." "INFO"
+                Optimize-Volume -DriveLetter $vol.DriveLetter -Defrag -Verbose *>&1 | ForEach-Object {
+                    # If it's a progress string, print it on the same line to avoid spam
+                    if ($_ -match "%\s*Complete") {
+                        Write-Host "`r    $_   " -NoNewline -ForegroundColor Gray
+                    }
+                }
+                Write-Host "" # Newline after progress finishes
+                Write-Log "Drive $($vol.DriveLetter): HDD Defrag completed" "SUCCESS"
             }
             else {
                 Write-Host "    Drive $($vol.DriveLetter): Skipped (type unknown -- check with Option 5)" -ForegroundColor Gray
