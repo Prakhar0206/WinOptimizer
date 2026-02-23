@@ -1,10 +1,9 @@
 @echo off
 setlocal
-title WinOptimizer v3.4 - Loading...
+title WinOptimizer v4.0 - Loading...
 color 0B
 
-:: Force UTF-8 encoding so emojis and borders don't break
-chcp 65001 >nul
+
 
 :: ============================================================
 ::  WinOptimizer Launcher

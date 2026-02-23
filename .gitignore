@@ -1,6 +1,6 @@
 # Script-generated output
-Optimizer_Log_*.txt
-System_Health_*.txt
+Optimizer_Log_*.csv
+System_Health_*.html
 battery-report.html
 
 # Windows

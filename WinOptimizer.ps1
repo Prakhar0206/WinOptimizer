@@ -1,50 +1,54 @@
 ﻿<#
 .SYNOPSIS
-    WinOptimizer - Ultimate Windows 11 Optimization & Maintenance Tool.
+    WinOptimizer - Ultimate Windows 10/11 Optimization & Maintenance Tool.
 
 .DESCRIPTION
     A comprehensive, all-in-one PowerShell script for Windows 10/11 optimization,
     diagnostics, and maintenance. Features 20 interactive tools:
 
-    DIAGNOSTICS (1-5):
-      1. Full System Health Report (10-section report saved to Desktop)
+    DIAGNOSTICS & ANALYSIS (1-6):
+      1. Full System Health Report (HTML dashboard, opens in browser)
       2. Quick RAM & CPU Check (instant visual bars)
       3. Identify Heavy Processes (top 15 + browser RAM + kill option)
       4. Battery Health Report (powercfg + charge/cycle stats)
       5. Disk & Hardware Health (S.M.A.R.T., temperatures, reliability counters)
+      6. Storage Space Analyzer (visual bars, folder scan, recommendations)
 
-    OPTIMIZATION (6-12):
-      6. Startup Optimizer (80+ known patterns, protected whitelist, task cleanup)
-      7. RAM & Performance (EmptyWorkingSet API, visual effects, power plan)
-      8. Deep Disk Clean (7-step: temp, 12 browsers, WU cache, CleanMgr, TRIM)
-      9. Network Repair (VPN-safe, DNS flush, TCP tuning, DNS provider config)
-     10. Service Optimization (SSD/HDD-aware, Defender tuning, telemetry disable)
+    PERFORMANCE & TWEAKS (7-10):
+      7. Smart Startup Optimizer (150+ known patterns, protected whitelist, task cleanup)
+      8. Optimize RAM & Performance (EmptyWorkingSet API, visual effects, power plan)
+      9. Optimize Windows Services (SSD/HDD-aware, Defender tuning, telemetry disable)
+     10. Fix Network Issues (VPN-safe, DNS flush, TCP tuning, DNS provider config)
+
+    PRIVACY & SECURITY (11-12):
      11. Privacy & Telemetry Shield (15+ registry settings across 8 categories)
      12. Windows Update Manager (pause/resume, active hours, cache clear)
 
-    REPAIR & MAINTENANCE (13-16):
-     13. Repair Windows (Full DISM+SFC, Quick SFC, Image Repair, Disk Check, Error Viewer)
-     14. Create System Restore Point (verified creation with shadow copy check)
+    CLEANING & DEBLOATING (13-16):
+     13. Deep Disk Clean (5-step: temp, browser caches, WU cache, old logs, SSD TRIM/HDD defrag)
+     14. Bloatware Uninstaller (definite junk + popular tiers, 4 removal modes)
      15. Clean Old Restore Points (keep N newest, vssadmin deletion)
      16. Cleanup Script Logs & Reports (auto/interactive, age-based filtering)
 
-    ALL-IN-ONE & EXTRAS (17-20):
-     17. Run ALL Optimizations (8-step pipeline with error resilience)
-     18. Software Update Manager (Winget: check, update, search, install, list)
-     19. Bloatware Uninstaller (definite junk + popular tiers, 4 removal modes)
-     20. Storage Space Analyzer (visual bars, folder scan, recommendations)
+    MAINTENANCE & REPAIRS (17-19):
+     17. Software Update Manager (Winget: check, update, search, install, list)
+     18. Repair Windows (Full DISM+SFC, Quick SFC, Image Repair, Disk Check, Error Viewer)
+     19. Create System Restore Point (verified creation with shadow copy check)
+
+    AUTOMATION (20):
+     20. Run ALL Optimizations (8-step pipeline with error resilience)
 
     Safety features:
-      - Automatic restore point creation before system changes
-      - Protected process whitelist (22 critical processes never trimmed)
-      - Protected startup whitelist (drivers, security, system essentials)
+      - Automatic restore point in all-in-one mode (Option 20)
+      - Protected process whitelist (28 processes never trimmed, including browsers)
+      - Protected startup whitelist (drivers, security, password managers, system essentials)
       - VPN/VM adapter auto-detection (skips destructive network resets)
-      - SSD/HDD auto-detection with 4 fallback methods
+      - SSD/HDD auto-detection with 3 fallback methods
       - Domain-joined PC detection (preserves network policies)
       - Configurable thresholds via $Config block at top of script
 
 .NOTES
-    Version:        3.4
+    Version:        4.0
     Author:         Prakhar Aggarwal
     Requires:       Windows 10/11, PowerShell 5.1+, Administrator privileges
     Last Updated:   February 2026
@@ -66,10 +70,19 @@
 # WINOPTIMIZER - Ultimate Windows Optimization
 # All-in-one script for Windows 10/11
 # Author: Prakhar Aggarwal
-# Version: 3.4
+# Version: 4.0
 # ============================================
 
-$scriptVersion = "3.4"
+# ── Admin check FIRST — exit before creating any files ──
+if (-NOT ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
+    Write-Host "`nERROR: This script requires Administrator privileges!" -ForegroundColor Red
+    Write-Host "Right-click PowerShell and select 'Run as Administrator'" -ForegroundColor Yellow
+    Write-Host "`nPress any key to exit..." -ForegroundColor Gray
+    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    exit
+}
+
+$scriptVersion = "4.0"
 $scriptDate = "February 2026"
 
 # Visual settings
@@ -96,7 +109,7 @@ catch {
 }
 
 $desktopPath = [Environment]::GetFolderPath('Desktop')
-$logFile = "$desktopPath\Optimizer_Log_$(Get-Date -Format 'yyyy-MM-dd_HH-mm-ss').txt"
+$logFile = "$desktopPath\Optimizer_Log_$(Get-Date -Format 'yyyy-MM-dd_HH-mm-ss').csv"
 $script:skipPause = $false
 
 # ============================================
@@ -131,7 +144,9 @@ $Config = @{
         "dwm", "explorer", "ShellExperienceHost", "StartMenuExperienceHost",
         "MsMpEng", "MsSense", "NisSrv", "SecurityHealthService",
         "audiodg", "fontdrvhost", "System", "Registry", "Memory Compression",
-        "SearchIndexer", "RuntimeBroker", "WmiPrvSE"
+        "SearchIndexer", "RuntimeBroker", "WmiPrvSE",
+        # Browsers — trimming their working set kills video playback, tabs, and autofill
+        "chrome", "msedge", "firefox", "brave", "opera", "vivaldi"
     )
 
     # Network adapter patterns to detect VPN/VM (skip destructive resets)
@@ -167,9 +182,12 @@ function Write-Log {
     
     # Only write to file if enabled (Option 20)
     if ($script:LoggingEnabled) {
-        $timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
-        $logEntry = "[$timestamp] [$Level] $Message"
-        $logEntry | Out-File -FilePath $logFile -Append -ErrorAction SilentlyContinue
+        $logObject = [PSCustomObject]@{
+            Timestamp = Get-Date -Format "yyyy-MM-dd HH:mm:ss"
+            Level     = $Level
+            Action    = $Message
+        }
+        $logObject | Export-Csv -Path $logFile -Append -NoTypeInformation -ErrorAction SilentlyContinue
     }
 }
 
@@ -233,16 +251,7 @@ function New-SafeRestorePoint {
     }
 }
 
-# ============================================
-# ADMIN CHECK
-# ============================================
-if (-NOT ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
-    Write-Host "`nERROR: This script requires Administrator privileges!" -ForegroundColor Red
-    Write-Host "Right-click PowerShell and select 'Run as Administrator'" -ForegroundColor Yellow
-    Write-Host "`nPress any key to exit..." -ForegroundColor Gray
-    $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
-    exit
-}
+
 
 # ============================================
 # MENU SYSTEM
@@ -264,8 +273,8 @@ function Show-Menu {
     }
     catch {}
     
-    $title = "ULTIMATE LAPTOP OPTIMIZER v$scriptVersion"
-    $sub = "Windows 11  |  $scriptDate"
+    $title = "ULTIMATE PC OPTIMIZER v$scriptVersion"
+    $sub = "Windows 10/11  |  $scriptDate"
     
     Write-Host ""
     Write-Host "   +============================================+" -ForegroundColor Cyan
@@ -302,7 +311,7 @@ function Show-Menu {
     Write-Host ""
     Write-Host "   --- CLEANING & DEBLOATING -----------------------" -ForegroundColor DarkCyan
     Write-Host "   13.  Deep Disk Clean             15.  Clean Old Restore Points" -ForegroundColor White
-    Write-Host "   14.  Bloatware Uninstaller       16.  Delete Old Log Files" -ForegroundColor White
+    Write-Host "   14.  Bloatware Uninstaller       16.  Cleanup Logs & Reports" -ForegroundColor White
     Write-Host ""
     Write-Host "   --- MAINTENANCE & REPAIRS -----------------------" -ForegroundColor DarkCyan
     Write-Host "   17.  Software Update (Winget)    19.  Create Restore Point" -ForegroundColor White
@@ -313,6 +322,7 @@ function Show-Menu {
     Write-Host ""
     Write-Host "    0.  Exit" -ForegroundColor DarkGray
     Write-Host "    H.  Help (What does each option do?)" -ForegroundColor DarkGray
+
     Write-Host ""
     Write-Host "   +============================================+" -ForegroundColor DarkCyan
 }
@@ -331,26 +341,50 @@ function Get-SystemInfo {
     Write-Host "FULL SYSTEM HEALTH REPORT" -ForegroundColor Cyan
     Write-Host "========================================`n" -ForegroundColor Cyan
     
-    $reportFile = "$desktopPath\System_Health_$(Get-Date -Format 'yyyy-MM-dd_HH-mm-ss').txt"
+    $reportFile = "$desktopPath\System_Health_$(Get-Date -Format 'yyyy-MM-dd_HH-mm-ss').html"
     
+    Write-Host "  Gathering data and building HTML report... This takes ~15 seconds." -ForegroundColor Gray
+    
+    $htmlHead = @"
+<!DOCTYPE html>
+<html>
+<head>
+<title>System Health Report</title>
+<style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; background-color: #0f172a; color: #cbd5e1; margin: 0; padding: 20px; }
+    .container { max-width: 900px; margin: auto; background: #1e293b; border-radius: 12px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5); overflow: hidden; }
+    h1 { background: #0284c7; color: white; padding: 20px; margin: 0; text-align: center; font-size: 24px; text-transform: uppercase; letter-spacing: 1px; }
+    h2 { color: #38bdf8; border-bottom: 1px solid #334155; padding-bottom: 8px; margin-top: 25px; margin-left: 20px; margin-right: 20px; text-transform: uppercase; font-size: 16px; }
+    table { width: calc(100% - 40px); border-collapse: collapse; margin: 10px 20px 20px 20px; font-size: 14px; }
+    th { background-color: #0c4a6e; text-align: left; padding: 12px; font-weight: 600; color: #bae6fd; width: 30%; }
+    td { padding: 10px 12px; border-bottom: 1px solid #334155; }
+    tr:nth-child(even) { background-color: #0f172a; }
+    .warn { color: #facc15; font-weight: bold; }
+    .crit { color: #ef4444; font-weight: bold; }
+    .good { color: #22c55e; font-weight: bold; }
+    .footer { text-align: center; padding: 15px; color: #64748b; font-size: 0.8em; background: #0f172a; border-top: 1px solid #334155; }
+</style>
+</head>
+<body>
+<div class="container">
+<h1>System Health Report</h1>
+"@
+
+    $htmlBody = ""
+
     # System Info
     Write-Log "[1/10] System Information..." "STEP"
     $computerInfo = Get-ComputerInfo -ErrorAction SilentlyContinue
     $uptime = (Get-Date) - (Get-CimInstance Win32_OperatingSystem).LastBootUpTime
-    $output = @"
-=== SYSTEM INFORMATION ===
-OS: $($computerInfo.OsName)
-Build: $($computerInfo.OsBuildNumber)
-CPU: $($computerInfo.CsProcessors.Name)
-Total RAM: $([math]::Round($computerInfo.CsTotalPhysicalMemory/1GB, 2)) GB
-System Uptime: $($uptime.Days) days, $($uptime.Hours) hours, $($uptime.Minutes) minutes
-Computer Name: $env:COMPUTERNAME
-User: $env:USERNAME
-Domain Joined: $($computerInfo.CsPartOfDomain)
-
-"@
-    Write-Host $output
-    $output | Out-File -FilePath $reportFile
+    $htmlBody += "<h2>System Information</h2><table>"
+    $htmlBody += "<tr><th>OS</th><td>$($computerInfo.OsName)</td></tr>"
+    $htmlBody += "<tr><th>Build</th><td>$($computerInfo.OsBuildNumber)</td></tr>"
+    $htmlBody += "<tr><th>CPU</th><td>$($computerInfo.CsProcessors.Name)</td></tr>"
+    $htmlBody += "<tr><th>Total RAM</th><td>$([math]::Round($computerInfo.CsTotalPhysicalMemory/1GB, 2)) GB</td></tr>"
+    $htmlBody += "<tr><th>System Uptime</th><td>$($uptime.Days) days, $($uptime.Hours) hours</td></tr>"
+    $htmlBody += "<tr><th>Computer Name</th><td>$env:COMPUTERNAME</td></tr>"
+    $htmlBody += "<tr><th>User</th><td>$env:USERNAME</td></tr>"
+    $htmlBody += "</table>"
     
     # RAM Status
     Write-Log "[2/10] Memory Status..." "STEP"
@@ -360,98 +394,76 @@ Domain Joined: $($computerInfo.CsPartOfDomain)
     $usedRAM = $totalRAM - $freeRAM
     $ramPercent = [math]::Round(($usedRAM / $totalRAM) * 100, 2)
     
-    # Memory slot info
     $memSlots = Get-CimInstance Win32_PhysicalMemory
-    $slotInfo = ""
+    $slotInfo = @()
     foreach ($slot in $memSlots) {
         $speed = if ($slot.Speed) { "$($slot.Speed) MHz" } else { "Unknown" }
-        $slotInfo += "  Slot: $($slot.DeviceLocator) | $([math]::Round($slot.Capacity/1GB, 0)) GB | $speed | $($slot.Manufacturer)`n"
+        $slotInfo += "Slot $($slot.DeviceLocator): $([math]::Round($slot.Capacity/1GB, 0)) GB @ $speed"
     }
     
-    $output = @"
-=== MEMORY STATUS ===
-Total RAM: $totalRAM GB
-Used RAM: $usedRAM GB ($ramPercent%)
-Free RAM: $freeRAM GB
-Status: $(if($ramPercent -lt 60){"Excellent"}elseif($ramPercent -lt 75){"Good"}elseif($ramPercent -lt 85){"Moderate"}else{"HIGH - Close apps!"})
-
-RAM Modules:
-$slotInfo
-"@
-    Write-Host $output
-    $output | Out-File -FilePath $reportFile -Append
+    $ramStatusObj = if ($ramPercent -lt 60) { "<span class='good'>Excellent</span>" } elseif ($ramPercent -lt 85) { "<span class='warn'>Moderate</span>" } else { "<span class='crit'>HIGH!</span>" }
+    
+    $htmlBody += "<h2>Memory Status</h2><table>"
+    $htmlBody += "<tr><th>Total RAM</th><td>$totalRAM GB</td></tr>"
+    $htmlBody += "<tr><th>Used / Free</th><td>$usedRAM GB ($ramPercent%) / $freeRAM GB</td></tr>"
+    $htmlBody += "<tr><th>Modules</th><td>$($slotInfo -join '<br>')</td></tr>"
+    $htmlBody += "<tr><th>Status</th><td>$ramStatusObj</td></tr>"
+    $htmlBody += "</table>"
     
     # Top RAM Users
     Write-Log "[3/10] Top RAM Consumers..." "STEP"
-    $output = "=== TOP 15 RAM USERS ===`n"
-    Get-Process | Sort-Object WS -Descending | Select-Object -First 15 | ForEach-Object {
+    $htmlBody += "<h2>Top RAM Consumers</h2><table><tr><th>Process</th><th>RAM (MB)</th><th>PID</th></tr>"
+    Get-Process | Sort-Object WS -Descending | Select-Object -First 10 | ForEach-Object {
         $ramMB = [math]::Round($_.WS / 1MB, 2)
-        $cpuTime = [math]::Round($_.CPU, 2)
-        $output += "  $($_.ProcessName): $ramMB MB | CPU Time: $cpuTime s | PID: $($_.Id)`n"
+        $class = if ($ramMB -gt 500) { "class='crit'" }elseif ($ramMB -gt 200) { "class='warn'" }else { "" }
+        $htmlBody += "<tr $class><td>$($_.ProcessName)</td><td>$ramMB</td><td>$($_.Id)</td></tr>"
     }
-    Write-Host $output
-    $output | Out-File -FilePath $reportFile -Append
+    $htmlBody += "</table>"
     
     # CPU Status
     Write-Log "[4/10] CPU Status..." "STEP"
     $cpu = Get-CimInstance Win32_Processor
-    $cpuTemp = $null
-    try {
-        $thermalZone = Get-CimInstance MSAcpi_ThermalZoneTemperature -Namespace "root/wmi" -ErrorAction SilentlyContinue
-        if ($thermalZone) {
-            $cpuTemp = [math]::Round(($thermalZone.CurrentTemperature - 2732) / 10, 1)
-        }
-    }
-    catch {}
+    $cpuLoad = $cpu.LoadPercentage
+    $cpuStatusObj = if ($cpuLoad -lt 30) { "<span class='good'>Idle</span>" } elseif ($cpuLoad -lt 85) { "<span class='warn'>Busy</span>" } else { "<span class='crit'>Heavy Load</span>" }
     
-    $output = @"
-=== CPU STATUS ===
-Processor: $($cpu.Name)
-Cores: $($cpu.NumberOfCores) | Logical Processors: $($cpu.NumberOfLogicalProcessors)
-Current Load: $($cpu.LoadPercentage)%
-Max Clock: $($cpu.MaxClockSpeed) MHz
-$(if($cpuTemp){"Temperature: $cpuTemp C"}else{"Temperature: Not available (requires hardware monitor)"})
-Status: $(if($cpu.LoadPercentage -lt 30){"Idle"}elseif($cpu.LoadPercentage -lt 60){"Normal"}elseif($cpu.LoadPercentage -lt 85){"Busy"}else{"HEAVY LOAD"})
-
-"@
-    Write-Host $output
-    $output | Out-File -FilePath $reportFile -Append
+    $htmlBody += "<h2>CPU Status</h2><table>"
+    $htmlBody += "<tr><th>Processor</th><td>$($cpu.Name)</td></tr>"
+    $htmlBody += "<tr><th>Cores/Logical</th><td>$($cpu.NumberOfCores) / $($cpu.NumberOfLogicalProcessors)</td></tr>"
+    $htmlBody += "<tr><th>Current Load</th><td>$cpuLoad%</td></tr>"
+    $htmlBody += "<tr><th>Max Clock</th><td>$($cpu.MaxClockSpeed) MHz</td></tr>"
+    $htmlBody += "<tr><th>Status</th><td>$cpuStatusObj</td></tr>"
+    $htmlBody += "</table>"
     
     # Disk Status
     Write-Log "[5/10] Disk Status..." "STEP"
     $volumes = Get-Volume | Where-Object { $_.DriveLetter -and $_.Size -gt 0 }
-    $output = "=== DISK STATUS ===`n"
+    $htmlBody += "<h2>Disk Status</h2><table><tr><th>Drive</th><th>Free / Total</th><th>% Used</th><th>Status</th></tr>"
     foreach ($vol in $volumes) {
         $percentFree = [math]::Round(($vol.SizeRemaining / $vol.Size) * 100, 2)
         $percentUsed = 100 - $percentFree
-        $bar = "[" + ($block.ToString() * [math]::Floor($percentUsed / 5)) + ($shade.ToString() * [math]::Ceiling($percentFree / 5)) + "]"
-        $status = if ($percentFree -lt 10) { "CRITICAL" }elseif ($percentFree -lt 20) { "Low" }else { "OK" }
-        $output += "  Drive $($vol.DriveLetter): $bar $percentUsed% used | $([math]::Round($vol.SizeRemaining/1GB, 2)) GB free / $([math]::Round($vol.Size/1GB, 2)) GB total | $status`n"
+        $statusCell = if ($percentFree -lt 10) { "<span class='crit'>CRITICAL</span>" } elseif ($percentFree -lt 20) { "<span class='warn'>Low</span>" } else { "<span class='good'>OK</span>" }
+        $htmlBody += "<tr><td>$($vol.DriveLetter):</td><td>$([math]::Round($vol.SizeRemaining/1GB, 2)) / $([math]::Round($vol.Size/1GB, 2)) GB</td><td>$percentUsed%</td><td>$statusCell</td></tr>"
     }
-    Write-Host $output
-    $output | Out-File -FilePath $reportFile -Append
+    $htmlBody += "</table>"
     
     # GPU Info
     Write-Log "[6/10] GPU Information..." "STEP"
     $gpus = Get-CimInstance Win32_VideoController
-    $output = "=== GPU STATUS ===`n"
+    $htmlBody += "<h2>GPU Information</h2><table><tr><th>Model</th><th>VRAM</th><th>Driver Version</th></tr>"
     foreach ($gpu in $gpus) {
         $vram = [math]::Round($gpu.AdapterRAM / 1GB, 2)
-        $vramStr = if ($vram -eq 0) { "System Shared" } else { "$vram GB" }
-        $output += "  $($gpu.Name) | VRAM: $vramStr | Driver: $($gpu.DriverVersion) | Status: $($gpu.Status)`n"
+        $htmlBody += "<tr><td>$($gpu.Name)</td><td>$vram GB</td><td>$($gpu.DriverVersion)</td></tr>"
     }
-    Write-Host $output
-    $output | Out-File -FilePath $reportFile -Append
+    $htmlBody += "</table>"
     
     # Startup Programs
     Write-Log "[7/10] Startup Programs..." "STEP"
     $startupApps = Get-CimInstance Win32_StartupCommand
-    $output = "=== STARTUP PROGRAMS ($($startupApps.Count) total) ===`n"
+    $htmlBody += "<h2>Startup Programs ($($startupApps.Count))</h2><table><tr><th>Name</th><th>Location</th></tr>"
     foreach ($app in $startupApps) {
-        $output += "  $($app.Name) | $($app.Location)`n"
+        $htmlBody += "<tr><td>$($app.Name)</td><td style='word-break: break-all;'>$($app.Location)</td></tr>"
     }
-    Write-Host $output
-    $output | Out-File -FilePath $reportFile -Append
+    $htmlBody += "</table>"
     
     # Services
     Write-Log "[8/10] Critical Services..." "STEP"
@@ -463,65 +475,64 @@ Status: $(if($cpu.LoadPercentage -lt 30){"Idle"}elseif($cpu.LoadPercentage -lt 6
         @{Name = "Spooler"; Description = "Print Spooler" },
         @{Name = "wuauserv"; Description = "Windows Update" }
     )
-    
-    $output = "=== SERVICES STATUS ===`n"
+    $htmlBody += "<h2>Critical Services</h2><table><tr><th>Service</th><th>Status</th><th>Start Type</th></tr>"
     foreach ($svc in $criticalServices) {
         $service = Get-Service -Name $svc.Name -ErrorAction SilentlyContinue
         if ($service) {
-            $output += "  $($svc.Description): $($service.Status) / $($service.StartType)`n"
+            $htmlBody += "<tr><td>$($svc.Description)</td><td>$($service.Status)</td><td>$($service.StartType)</td></tr>"
         }
     }
-    Write-Host $output
-    $output | Out-File -FilePath $reportFile -Append
+    $htmlBody += "</table>"
     
     # Network
     Write-Log "[9/10] Network Status..." "STEP"
-    $output = "=== NETWORK STATUS ===`n"
-    
+    $htmlBody += "<h2>Network Configuration</h2><table><tr><th>Adapter</th><th>IP Address</th><th>DNS Servers</th></tr>"
     $adapters = Get-NetAdapter | Where-Object { $_.Status -eq "Up" }
     foreach ($adapter in $adapters) {
         $ipConfig = Get-NetIPAddress -InterfaceIndex $adapter.ifIndex -AddressFamily IPv4 -ErrorAction SilentlyContinue
         $dns = Get-DnsClientServerAddress -InterfaceIndex $adapter.ifIndex -ErrorAction SilentlyContinue
-        $output += "  Adapter: $($adapter.Name) | Speed: $($adapter.LinkSpeed) | IP: $($ipConfig.IPAddress) | DNS: $($dns.ServerAddresses -join ', ')`n"
+        $htmlBody += "<tr><td>$($adapter.Name)</td><td>$($ipConfig.IPAddress)</td><td>$($dns.ServerAddresses -join ', ')</td></tr>"
     }
+    $htmlBody += "</table>"
     
     try {
-        # Note: -TimeoutSeconds is available in PS 7. For PS 5.1 we use a quick hack with WMI or accept the count 1 if offline, but -Count 1 is fast enough
         $ping = Test-Connection -ComputerName 8.8.8.8 -Count 1 -ErrorAction Stop
         $latencyProp = if ($ping[0].PSObject.Properties['Latency']) { 'Latency' } else { 'ResponseTime' }
         $avgLatency = [math]::Round(($ping | Measure-Object -Property $latencyProp -Average).Average, 2)
-        $minLatency = ($ping | Measure-Object -Property $latencyProp -Minimum).Minimum
-        $maxLatency = ($ping | Measure-Object -Property $latencyProp -Maximum).Maximum
-        $output += "  Internet: Connected | Avg: ${avgLatency}ms | Min: ${minLatency}ms | Max: ${maxLatency}ms`n"
+        $htmlBody += "<div style='margin: 0 20px; color: #cbd5e1;'>Internet Latency: <span class='good'>${avgLatency}ms</span></div>"
     }
     catch {
-        $output += "  Internet: DISCONNECTED or BLOCKED`n"
+        $htmlBody += "<div style='margin: 0 20px;' class='crit'>Internet Latency: DISCONNECTED</div>"
     }
-    Write-Host $output
-    $output | Out-File -FilePath $reportFile -Append
     
     # Windows Activation Status
     Write-Log "[10/10] Windows License Status..." "STEP"
     $license = Get-CimInstance SoftwareLicensingProduct -ErrorAction SilentlyContinue | Where-Object { $_.PartialProductKey -and $_.Name -like "*Windows*" }
-    $output = "=== WINDOWS LICENSE ===`n"
     if ($license) {
         $licStatus = switch ($license.LicenseStatus) {
             0 { "Unlicensed" }
             1 { "Licensed (Activated)" }
-            2 { "Out of Box Grace" }
-            3 { "Out of Tolerance Grace" }
-            4 { "Non-Genuine Grace" }
-            5 { "Notification" }
-            default { "Unknown" }
+            default { "Other/Grace" }
         }
-        $output += "  Status: $licStatus`n"
+        $htmlBody += "<h2>Windows License</h2><table><tr><th>Status</th><td>$licStatus</td></tr></table>"
     }
-    Write-Host $output
-    $output | Out-File -FilePath $reportFile -Append
     
-    Write-Host "`nFull report saved to: $reportFile" -ForegroundColor Green
-    if (Get-ValidYN "Open report in Notepad?") {
-        notepad $reportFile
+    $htmlFooter = @"
+</div>
+<div class="footer">
+Generated by WinOptimizer v$scriptVersion on $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')
+</div>
+</body>
+</html>
+"@
+
+    $htmlFull = $htmlHead + $htmlBody + $htmlFooter
+    $htmlFull | Out-File -FilePath $reportFile -Encoding UTF8
+    
+    Write-Log "HTML Report built successfully!" "SUCCESS"
+    Write-Host "`nFull HTML report saved to: $reportFile" -ForegroundColor Green
+    if (Get-ValidYN "Open report in Browser?") {
+        Start-Process $reportFile
     }
     Wait-KeyPress
 }
@@ -553,8 +564,8 @@ function Get-QuickStatus {
     Write-Host "RAM: $ramBar $ramPercent% ($usedRAM / $totalRAM GB)" -ForegroundColor $ramColor
     Write-Host "CPU: $cpuBar $cpuLoad%" -ForegroundColor $cpuColor
     
-    # Uptime
-    $uptime = (Get-Date) - (Get-CimInstance Win32_OperatingSystem).LastBootUpTime
+    # Uptime (reuse the $os object we already fetched above)
+    $uptime = (Get-Date) - $os.LastBootUpTime
     Write-Host "`nUptime: $($uptime.Days)d $($uptime.Hours)h $($uptime.Minutes)m" -ForegroundColor Gray
     
     if ($uptime.Days -ge 7) {
@@ -992,7 +1003,10 @@ function Optimize-Startup {
         "PowerShell*",
         # Docking / Display management
         "DisplayLink*",
-        "Thunderbolt*"
+        "Thunderbolt*",
+        # Password Managers (need startup for browser autofill integration)
+        "1Password*", "LastPass*", "Bitwarden*", "Dashlane*",
+        "KeePass*", "NordPass*", "RoboForm*", "Keeper*"
     )
     
     # ── Known non-essential apps with descriptions and categories ──
@@ -1006,6 +1020,7 @@ function Optimize-Startup {
         @{Pattern = "Slack*"; Desc = "Slack"; Category = "Communication" },
         @{Pattern = "Skype*"; Desc = "Skype"; Category = "Communication" },
         @{Pattern = "Zoom*"; Desc = "Zoom"; Category = "Communication" },
+        @{Pattern = "ZoomOpener*"; Desc = "Zoom Opener"; Category = "Communication" },
         @{Pattern = "Telegram*"; Desc = "Telegram Desktop"; Category = "Communication" },
         @{Pattern = "Signal*"; Desc = "Signal Messenger"; Category = "Communication" },
         @{Pattern = "WhatsApp*"; Desc = "WhatsApp Desktop"; Category = "Communication" },
@@ -1091,15 +1106,7 @@ function Optimize-Startup {
         @{Pattern = "ClickUp*"; Desc = "ClickUp"; Category = "Productivity" },
         @{Pattern = "Obsidian*"; Desc = "Obsidian Notes"; Category = "Productivity" },
 
-        # ─── Password Managers ───
-        @{Pattern = "1Password*"; Desc = "1Password"; Category = "Password Manager" },
-        @{Pattern = "LastPass*"; Desc = "LastPass"; Category = "Password Manager" },
-        @{Pattern = "Bitwarden*"; Desc = "Bitwarden"; Category = "Password Manager" },
-        @{Pattern = "Dashlane*"; Desc = "Dashlane"; Category = "Password Manager" },
-        @{Pattern = "KeePass*"; Desc = "KeePass"; Category = "Password Manager" },
-        @{Pattern = "NordPass*"; Desc = "NordPass"; Category = "Password Manager" },
-        @{Pattern = "RoboForm*"; Desc = "RoboForm"; Category = "Password Manager" },
-        @{Pattern = "Keeper*"; Desc = "Keeper Password Manager"; Category = "Password Manager" },
+
 
         # ─── VPN Services ───
         @{Pattern = "NordVPN*"; Desc = "NordVPN"; Category = "VPN" },
@@ -1121,33 +1128,27 @@ function Optimize-Startup {
         @{Pattern = "GHUB*"; Desc = "Logitech G HUB"; Category = "Peripheral" },
         @{Pattern = "iCUE*"; Desc = "Corsair iCUE"; Category = "Peripheral" },
         @{Pattern = "Corsair*"; Desc = "Corsair Software"; Category = "Peripheral" },
-        @{Pattern = "Razer*"; Desc = "Razer Synapse"; Category = "Peripheral" },
+        @{Pattern = "CorsairVBus*"; Desc = "Corsair Virtual Bus Driver"; Category = "Peripheral" },
+        @{Pattern = "RazerCentral*"; Desc = "Razer Central"; Category = "Peripheral" },
+        @{Pattern = "RazerSynapse*"; Desc = "Razer Synapse"; Category = "Peripheral" },
         @{Pattern = "SteelSeries*"; Desc = "SteelSeries GG/Engine"; Category = "Peripheral" },
         @{Pattern = "HyperX*"; Desc = "HyperX NGENUITY"; Category = "Peripheral" },
         @{Pattern = "NZXT*"; Desc = "NZXT CAM"; Category = "Peripheral" },
-        @{Pattern = "Elgato*"; Desc = "Elgato Software"; Category = "Peripheral" },
-        @{Pattern = "StreamDeck*"; Desc = "Elgato Stream Deck"; Category = "Peripheral" },
-        @{Pattern = "JabraDirectSetup*"; Desc = "Jabra Direct"; Category = "Peripheral" },
+        @{Pattern = "Elgato*"; Desc = "Elgato Software (Stream Deck etc.)"; Category = "Peripheral" },
         @{Pattern = "Jabra*"; Desc = "Jabra Software"; Category = "Peripheral" },
-        @{Pattern = "Poly*"; Desc = "Poly (Plantronics)"; Category = "Peripheral" },
+        @{Pattern = "PolyLens*"; Desc = "Poly Lens"; Category = "Peripheral" },
+        @{Pattern = "Plantronics*"; Desc = "Plantronics Hub"; Category = "Peripheral" },
         @{Pattern = "Sonos*"; Desc = "Sonos Controller"; Category = "Peripheral" },
 
         # ─── Creative & Streaming ───
         @{Pattern = "Figma*"; Desc = "Figma Agent"; Category = "Creative" },
-        @{Pattern = "OBS*"; Desc = "OBS Studio"; Category = "Creative" },
+        @{Pattern = "OBS*"; Desc = "OBS Studio (if set to auto-start)"; Category = "Creative" },
         @{Pattern = "Streamlabs*"; Desc = "Streamlabs Desktop"; Category = "Creative" },
         @{Pattern = "XSplit*"; Desc = "XSplit Broadcaster"; Category = "Creative" },
-        @{Pattern = "Audacity*"; Desc = "Audacity"; Category = "Creative" },
-        @{Pattern = "GIMP*"; Desc = "GIMP Image Editor"; Category = "Creative" },
-        @{Pattern = "Blender*"; Desc = "Blender 3D"; Category = "Creative" },
         @{Pattern = "DaVinci*"; Desc = "DaVinci Resolve"; Category = "Creative" },
 
         # ─── Dev Tools ───
         @{Pattern = "Docker*"; Desc = "Docker Desktop"; Category = "Dev Tool" },
-        @{Pattern = "Postman*"; Desc = "Postman API Client"; Category = "Dev Tool" },
-        @{Pattern = "GitHubDesktop*"; Desc = "GitHub Desktop"; Category = "Dev Tool" },
-        @{Pattern = "SourceTree*"; Desc = "SourceTree Git Client"; Category = "Dev Tool" },
-        @{Pattern = "Insomnia*"; Desc = "Insomnia REST Client"; Category = "Dev Tool" },
 
         # ─── Browser Auto-Launch ───
         @{Pattern = "MicrosoftEdge*Auto*"; Desc = "Edge Auto-Launch"; Category = "Browser" },
@@ -1160,8 +1161,7 @@ function Optimize-Startup {
         @{Pattern = "PhoneLink*"; Desc = "Phone Link"; Category = "Other" },
         @{Pattern = "QuickTime*"; Desc = "QuickTime"; Category = "Other" },
         @{Pattern = "CyberLink*"; Desc = "CyberLink Media"; Category = "Other" },
-        @{Pattern = "NahimicService*"; Desc = "Nahimic (audio bloatware)"; Category = "Other" },
-        @{Pattern = "Nahimic*"; Desc = "Nahimic Companion"; Category = "Other" },
+        @{Pattern = "Nahimic*"; Desc = "Nahimic (audio bloatware)"; Category = "Other" },
         @{Pattern = "WMPNetworkSvc*"; Desc = "WMP Network Sharing"; Category = "Other" },
         @{Pattern = "CCleaner*"; Desc = "CCleaner"; Category = "Other" },
         @{Pattern = "IObit*"; Desc = "IObit Software"; Category = "Other" },
@@ -1176,7 +1176,7 @@ function Optimize-Startup {
         @{Pattern = "EaseUS*"; Desc = "EaseUS Software"; Category = "Other" },
         @{Pattern = "MiniTool*"; Desc = "MiniTool Software"; Category = "Other" },
         @{Pattern = "Wondershare*"; Desc = "Wondershare Software"; Category = "Other" },
-        @{Pattern = "CyberReason*"; Desc = "CyberReason (if not corporate)"; Category = "Other" },
+        @{Pattern = "Cybereason*"; Desc = "Cybereason (if not corporate)"; Category = "Other" },
 
         # ─── OEM Bloatware ───
         @{Pattern = "DellSupportAssist*"; Desc = "Dell SupportAssist"; Category = "OEM Bloat" },
@@ -1185,8 +1185,12 @@ function Optimize-Startup {
         @{Pattern = "HPJumpStart*"; Desc = "HP JumpStart"; Category = "OEM Bloat" },
         @{Pattern = "HPSupportSolutions*"; Desc = "HP Support Solutions"; Category = "OEM Bloat" },
         @{Pattern = "HPOmenCommander*"; Desc = "HP OMEN Gaming Hub"; Category = "OEM Bloat" },
+        @{Pattern = "hp-optionalfeatures*"; Desc = "HP Optional Features"; Category = "OEM Bloat" },
+        @{Pattern = "HPNetworkCommunicator*"; Desc = "HP Network Communicator"; Category = "OEM Bloat" },
         @{Pattern = "AsusSoftwareManager*"; Desc = "ASUS Software Manager"; Category = "OEM Bloat" },
+        @{Pattern = "AsusOptimiz*"; Desc = "ASUS Optimizer"; Category = "OEM Bloat" },
         @{Pattern = "ArmouryCrate*"; Desc = "ASUS Armoury Crate"; Category = "OEM Bloat" },
+        @{Pattern = "ASUS*Armoury*"; Desc = "ASUS Armoury Services"; Category = "OEM Bloat" },
         @{Pattern = "MyASUS*"; Desc = "MyASUS"; Category = "OEM Bloat" },
         @{Pattern = "LenovoNow*"; Desc = "Lenovo Now"; Category = "OEM Bloat" },
         @{Pattern = "AcerQuickAccess*"; Desc = "Acer Quick Access"; Category = "OEM Bloat" },
@@ -1211,7 +1215,10 @@ function Optimize-Startup {
         "HKCU:\Software\Microsoft\Windows\CurrentVersion\Run",
         "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Run",
         "HKCU:\Software\Microsoft\Windows\CurrentVersion\RunOnce",
-        "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce"
+        "HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\RunOnce",
+        # 32-bit apps on 64-bit Windows write startup entries here
+        "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Run",
+        "HKLM:\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\RunOnce"
     )
     
     $allEntries = @()
@@ -1524,20 +1531,20 @@ function Optimize-RAM {
     $osBefore = Get-CimInstance Win32_OperatingSystem
     $ramBefore = [math]::Round(($osBefore.TotalVisibleMemorySize - $osBefore.FreePhysicalMemory) / 1MB, 2)
     
-    # Visual Effects
+    # Visual Effects — disable UI animations but keep GPU/DWM hardware acceleration
+    # (VisualFXSetting=3 would break GPU-composited video in browsers like Instagram Reels)
     Write-Log "[1/6] Optimizing visual effects..." "STEP"
-    $path = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\VisualEffects"
-    if (!(Test-Path $path)) { New-Item -Path $path -Force | Out-Null }
-    Set-ItemProperty -Path $path -Name "VisualFXSetting" -Value 3 -ErrorAction SilentlyContinue
     
     # Keep font smoothing for readability
     Set-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name "FontSmoothing" -Value 2 -ErrorAction SilentlyContinue
     
-    # Disable animations
+    # Disable specific animations (not the blanket "Best Performance" mode)
     $animSettings = @(
         @{Path = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"; Name = "TaskbarAnimations"; Value = 0 },
         @{Path = "HKCU:\Control Panel\Desktop\WindowMetrics"; Name = "MinAnimate"; Value = "0" },
-        @{Path = "HKCU:\Control Panel\Desktop"; Name = "MenuShowDelay"; Value = "50" }
+        @{Path = "HKCU:\Control Panel\Desktop"; Name = "MenuShowDelay"; Value = "50" },
+        @{Path = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"; Name = "ListviewShadow"; Value = 0 },
+        @{Path = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"; Name = "ListviewAlphaSelect"; Value = 0 }
     )
     
     foreach ($setting in $animSettings) {
@@ -1547,32 +1554,50 @@ function Optimize-RAM {
     
     # Disable transparency
     Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name "EnableTransparency" -Value 0 -ErrorAction SilentlyContinue
-    Write-Log "Visual effects optimized" "SUCCESS"
+    Write-Log "Visual effects optimized (GPU acceleration preserved)" "SUCCESS"
     
     # Power Plan
     Write-Log "`n[2/6] Optimizing Power Plan..." "STEP"
     try {
-        # Try to activate High Performance
-        $highPerfGuid = "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c"
-        powercfg /setactive $highPerfGuid 2>$null
+        # Save current plan so user knows what to restore
+        $currentPlan = (powercfg /getactivescheme 2>$null) -replace '.*:\s*', '' -replace '\s*\(.*', ''
         
-        if ($LASTEXITCODE -ne 0) {
-            # If High Performance doesn't exist, create Ultimate Performance
-            powercfg -duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61 2>$null
-            if ($LASTEXITCODE -eq 0) {
-                Write-Log "Ultimate Performance plan created!" "SUCCESS"
-            }
-            else {
-                Write-Log "Using current power plan" "WARNING"
+        # Detect battery (laptop vs desktop)
+        $hasBattery = $null -ne (Get-CimInstance Win32_Battery -ErrorAction SilentlyContinue)
+        $applyPlan = $true
+        
+        if ($hasBattery) {
+            Write-Host "  Battery detected (laptop/tablet)." -ForegroundColor Yellow
+            Write-Host "  High Performance will significantly reduce battery life." -ForegroundColor Yellow
+            if (-not (Get-ValidYN "  Switch to High Performance anyway?")) {
+                $applyPlan = $false
+                Write-Log "Power plan kept as-is (user declined — battery detected)" "INFO"
             }
         }
-        else {
-            Write-Log "High Performance plan activated" "SUCCESS"
+        
+        if ($applyPlan) {
+            $highPerfGuid = "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c"
+            powercfg /setactive $highPerfGuid 2>$null
+            
+            if ($LASTEXITCODE -ne 0) {
+                powercfg -duplicatescheme e9a42b02-d5df-448d-aa00-03f14749eb61 2>$null
+                if ($LASTEXITCODE -eq 0) {
+                    Write-Log "Ultimate Performance plan created!" "SUCCESS"
+                }
+                else {
+                    Write-Log "Using current power plan" "WARNING"
+                }
+            }
+            else {
+                Write-Log "High Performance plan activated" "SUCCESS"
+            }
+            Write-Host "    Previous plan was: $currentPlan" -ForegroundColor Gray
+            Write-Host "    To restore: powercfg /setactive <GUID>" -ForegroundColor Gray
         }
     }
     catch {
         Write-Log "Power plan optimization skipped: $($_.Exception.Message)" "WARNING"
-        Write-Host "    Tip: Your device may use a manufacturer-locked power plan (common on laptops)" -ForegroundColor Gray
+        Write-Host "    Tip: Your device may use a manufacturer-locked power plan (common on portable PCs)" -ForegroundColor Gray
         Write-Host "    Fix: Check Settings > System > Power & Battery for available plans" -ForegroundColor Gray
     }
     
@@ -1607,8 +1632,9 @@ function Optimize-RAM {
     # Optimize NTFS
     Write-Log "`n[5/6] Optimizing NTFS settings..." "STEP"
     fsutil behavior set DisableLastAccess 1 2>$null | Out-Null
-    fsutil behavior set Disable8dot3 1 2>$null | Out-Null
-    Write-Log "NTFS optimized (disabled last access timestamps & 8.3 names)" "SUCCESS"
+    # Note: Disable8dot3 intentionally not touched — it's permanent, system-wide,
+    # and can break legacy software (Adobe installers, some games) that rely on short filenames.
+    Write-Log "NTFS optimized (disabled last access timestamps)" "SUCCESS"
     
     # Trim working sets system-wide (real RAM optimization)
     Write-Log "`n[6/6] Trimming process working sets (freeing idle RAM)..." "STEP"
@@ -1671,13 +1697,15 @@ function Optimize-RAM {
     
     # After stats
     Start-Sleep -Seconds 2
-    $osAfter = Get-CimInstance Win32_OperatingSystem
-    $ramAfter = [math]::Round(($osAfter.TotalVisibleMemorySize - $osAfter.FreePhysicalMemory) / 1MB, 2)
-    $ramSaved = $ramBefore - $ramAfter
-    
-    Write-Host "`n  RAM Before: $ramBefore GB" -ForegroundColor Gray
-    Write-Host "  RAM After: $ramAfter GB" -ForegroundColor Gray
-    Write-Host "  RAM Freed: $ramSaved GB" -ForegroundColor $(if ($ramSaved -gt 0) { "Green" }else { "Yellow" })
+    $osAfter = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
+    if ($ramBefore -and $osAfter) {
+        $ramAfter = [math]::Round(($osAfter.TotalVisibleMemorySize - $osAfter.FreePhysicalMemory) / 1MB, 2)
+        $ramSaved = $ramBefore - $ramAfter
+        
+        Write-Host "`n  RAM Before: $ramBefore GB" -ForegroundColor Gray
+        Write-Host "  RAM After: $ramAfter GB" -ForegroundColor Gray
+        Write-Host "  RAM Freed: $ramSaved GB" -ForegroundColor $(if ($ramSaved -gt 0) { "Green" }else { "Yellow" })
+    }
     
     Write-Log "`nRAM & Performance fully optimized!" "SUCCESS"
     Wait-KeyPress
@@ -1737,7 +1765,6 @@ function Optimize-Services {
         @{Name = "DiagTrack"; Desc = "Connected User Experiences & Telemetry" },
         @{Name = "dmwappushservice"; Desc = "WAP Push Message Service" },
         @{Name = "MapsBroker"; Desc = "Downloaded Maps Manager" },
-        @{Name = "lfsvc"; Desc = "Geolocation Service" },
         @{Name = "RetailDemo"; Desc = "Retail Demo Service" },
         @{Name = "WMPNetworkSvc"; Desc = "Windows Media Player Sharing" },
         @{Name = "wisvc"; Desc = "Windows Insider Service" }
@@ -1753,8 +1780,10 @@ function Optimize-Services {
     }
     
     # Services to set to Manual (with smart detection)
+    # Note: WSearch intentionally kept Automatic — setting it to Manual causes
+    # laggy Start Menu search and broken File Explorer search on first use.
     $servicesToManual = @(
-        @{Name = "WSearch"; Desc = "Windows Search" }
+        @{Name = "lfsvc"; Desc = "Geolocation Service (Manual = available when apps need it)" }
     )
     
     # Detect printers -- only set Spooler to Manual if NO printers are connected
@@ -1787,7 +1816,21 @@ function Optimize-Services {
         $servicesToManual += @{Name = "WbioSrvc"; Desc = "Windows Biometric (no reader detected)" }
     }
     
-    $servicesToManual += @{Name = "TabletInputService"; Desc = "Touch Keyboard" }
+    # Detect touchscreen before touching TabletInputService
+    $hasTouchscreen = $false
+    try {
+        $touchDevices = Get-PnpDevice -Class "HIDClass" -Status "OK" -ErrorAction SilentlyContinue |
+        Where-Object { $_.FriendlyName -match "touch screen|touch digitizer" }
+        if ($touchDevices) { $hasTouchscreen = $true }
+    }
+    catch {}
+    
+    if ($hasTouchscreen) {
+        Write-Host "  Touchscreen detected -- Touch Keyboard service kept running" -ForegroundColor Green
+    }
+    else {
+        $servicesToManual += @{Name = "TabletInputService"; Desc = "Touch Keyboard (no touchscreen detected)" }
+    }
     $servicesToManual += @{Name = "Fax"; Desc = "Fax Service" }
     
     # Filter out services that are already in the target state
@@ -1972,11 +2015,16 @@ function Repair-Network {
         Write-Log "[4/7] Skipped Firewall reset (Safe Mode)" "INFO"
     }
     
-    Write-Log "`n[5/7] Renewing IP address..." "STEP"
-    ipconfig /release 2>$null | Out-Null
-    Start-Sleep -Seconds 3
-    ipconfig /renew 2>$null | Out-Null
-    Write-Log "IP address renewed" "SUCCESS"
+    if (-not $skipResets) {
+        Write-Log "`n[5/7] Renewing IP address..." "STEP"
+        ipconfig /release 2>$null | Out-Null
+        Start-Sleep -Seconds 3
+        ipconfig /renew 2>$null | Out-Null
+        Write-Log "IP address renewed" "SUCCESS"
+    }
+    else {
+        Write-Log "`n[5/7] Skipped IP release/renew (Safe Mode)" "INFO"
+    }
     
     Write-Log "`n[6/7] Optimizing TCP settings..." "STEP"
     # Enable TCP auto-tuning
@@ -1985,8 +2033,9 @@ function Repair-Network {
     netsh int tcp set global dca=enabled 2>$null | Out-Null
     # Enable Receive-Side Scaling
     netsh int tcp set global rss=enabled 2>$null | Out-Null
-    # Optimize congestion control
-    netsh int tcp set global congestionprovider=ctcp 2>$null | Out-Null
+    # Note: CTCP (congestionprovider=ctcp) intentionally removed —
+    # deprecated on Windows 11 (does nothing), and on Windows 10 it's
+    # too aggressive for home WiFi (designed for high-bandwidth/high-latency links).
     Write-Log "TCP settings optimized" "SUCCESS"
     
     # DNS Configuration with PRE-CHECK
@@ -2128,6 +2177,7 @@ function Set-PrivacyShield {
     # Disable Bing Search in Start Menu
     Write-Log "`n[5/8] Disabling Bing Search in Start Menu..." "STEP"
     $searchPath = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Search"
+    if (!(Test-Path $searchPath)) { New-Item -Path $searchPath -Force | Out-Null }
     Set-ItemProperty -Path $searchPath -Name "BingSearchEnabled" -Value 0 -ErrorAction SilentlyContinue
     Set-ItemProperty -Path $searchPath -Name "CortanaConsent" -Value 0 -ErrorAction SilentlyContinue
     $changesCount += 2
@@ -2135,20 +2185,31 @@ function Set-PrivacyShield {
     
     # Disable Cloud Content & Suggestions
     Write-Log "`n[6/8] Disabling Cloud Content & Suggestions..." "STEP"
-    $cloudPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent"
-    if (!(Test-Path $cloudPath)) { New-Item -Path $cloudPath -Force | Out-Null }
-    Set-ItemProperty -Path $cloudPath -Name "DisableWindowsConsumerFeatures" -Value 1 -ErrorAction SilentlyContinue
-    Set-ItemProperty -Path $cloudPath -Name "DisableSoftLanding" -Value 1 -ErrorAction SilentlyContinue
+    
+    # DisableWindowsConsumerFeatures only works properly on Pro/Enterprise.
+    # On Home edition it can cause blank Start Menu tiles and broken Store.
+    $osCaption = (Get-CimInstance Win32_OperatingSystem).Caption
+    if ($osCaption -match "Pro|Enterprise|Education") {
+        $cloudPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\CloudContent"
+        if (!(Test-Path $cloudPath)) { New-Item -Path $cloudPath -Force | Out-Null }
+        Set-ItemProperty -Path $cloudPath -Name "DisableWindowsConsumerFeatures" -Value 1 -ErrorAction SilentlyContinue
+        Set-ItemProperty -Path $cloudPath -Name "DisableSoftLanding" -Value 1 -ErrorAction SilentlyContinue
+        $changesCount += 2
+    }
+    else {
+        Write-Host "    Skipped ConsumerFeatures policy (not supported on Home edition)" -ForegroundColor DarkGray
+    }
     
     # Disable suggestions in Settings
     $contentDelivery = "HKCU:\Software\Microsoft\Windows\CurrentVersion\ContentDeliveryManager"
+    # Note: SilentInstalledAppsEnabled intentionally kept — disabling it also blocks
+    # codec auto-updates (HEVC, AV1) via the Store. Bloatware is handled by Option 14.
     $cdSettings = @(
         "SubscribedContent-338389Enabled",   # Suggested content in Settings
         "SubscribedContent-353694Enabled",    # Suggested content in Settings
         "SubscribedContent-353696Enabled",    # Suggested content in Settings
         "SubscribedContent-310093Enabled",    # Tips/tricks
         "SystemPaneSuggestionsEnabled",       # Start menu suggestions
-        "SilentInstalledAppsEnabled",         # Silently installed apps
         "SoftLandingEnabled"                  # Tips about Windows
     )
     foreach ($cd in $cdSettings) {
@@ -2563,7 +2624,22 @@ function Invoke-DiskCleanup {
     $browserTotalMB = 0
     $browserResults = @()
     
+    # Map browser names to their process names for running detection
+    $browserProcessMap = @{
+        "Edge" = "msedge"; "Chrome" = "chrome"; "Firefox" = "firefox";
+        "Brave" = "brave"; "Vivaldi" = "vivaldi"; "Arc" = "arc";
+        "Opera" = "opera"; "Floorp" = "floorp"; "Comet" = "comet";
+        "Waterfox" = "waterfox"; "Zen" = "zen"; "Tor" = "tor"
+    }
+    
     foreach ($browser in $browserDefs) {
+        # Skip this browser's cache if it's currently running (prevents lock errors / Firefox corruption)
+        $procName = $browserProcessMap[$browser.Name]
+        if ($procName -and (Get-Process -Name $procName -ErrorAction SilentlyContinue)) {
+            Write-Host "    $($browser.Name): Skipped (currently running)" -ForegroundColor DarkYellow
+            continue
+        }
+        
         $browserSizeMB = 0
         $found = $false
         
@@ -2749,7 +2825,6 @@ function Remove-Bloatware {
         @{Pattern = "*MarchofEmpires*"; Desc = "March of Empires" },
         @{Pattern = "*HiddenCityMystery*"; Desc = "Hidden City" },
         @{Pattern = "*RoyalRevolt*"; Desc = "Royal Revolt" },
-        @{Pattern = "*AutodeskSketchBook*"; Desc = "Autodesk SketchBook" },
         @{Pattern = "*WildTangent*"; Desc = "WildTangent Games" },
         # Bing suite
         @{Pattern = "*BingNews*"; Desc = "Bing News" },
@@ -2762,18 +2837,19 @@ function Remove-Bloatware {
         @{Pattern = "*Print3D*"; Desc = "Print 3D" },
         @{Pattern = "*MixedReality*"; Desc = "Mixed Reality Portal" },
         @{Pattern = "*OneConnect*"; Desc = "Paid Wi-Fi & Cellular" },
-        @{Pattern = "*People*"; Desc = "People App" },
+        @{Pattern = "*Microsoft.People*"; Desc = "People App" },
         @{Pattern = "*Getstarted*"; Desc = "Tips / Get Started" },
         @{Pattern = "*GetHelp*"; Desc = "Get Help" },
         @{Pattern = "*FeedbackHub*"; Desc = "Feedback Hub" },
-        @{Pattern = "*Wallet*"; Desc = "Microsoft Wallet" },
+        @{Pattern = "*Microsoft.Wallet*"; Desc = "Microsoft Wallet" },
         @{Pattern = "*MicrosoftOfficeHub*"; Desc = "Office Hub (Get Office)" },
         @{Pattern = "*PowerAutomateDesktop*"; Desc = "Power Automate" },
         @{Pattern = "*ZuneMusic*"; Desc = "Groove Music" },
         @{Pattern = "*ZuneVideo*"; Desc = "Movies & TV" },
-        # OEM trial junk
-        @{Pattern = "*McAfee*"; Desc = "McAfee Security (trial)" },
-        @{Pattern = "*Norton*"; Desc = "Norton Security (trial)" },
+        # OEM trial junk (WARNING: patterns also match paid versions —
+        # user should verify before removing if they purchased these)
+        @{Pattern = "*McAfee*"; Desc = "McAfee Security (pre-installed trial)" },
+        @{Pattern = "*Norton*"; Desc = "Norton Security (pre-installed trial)" },
         @{Pattern = "*ExpressVPN*"; Desc = "ExpressVPN (trial)" },
         @{Pattern = "*CyberLink*"; Desc = "CyberLink Media" }
     )
@@ -2802,13 +2878,21 @@ function Remove-Bloatware {
         @{Pattern = "*Whiteboard*"; Desc = "Microsoft Whiteboard" },
         @{Pattern = "*Plex*"; Desc = "Plex" },
         @{Pattern = "*Dolby*"; Desc = "Dolby Access" },
-        @{Pattern = "*GamingApp*"; Desc = "Xbox App" },
-        @{Pattern = "*XboxApp*"; Desc = "Xbox Console Companion" },
+        @{Pattern = "*GamingApp*"; Desc = "Xbox Gaming App" },
+        @{Pattern = "*XboxApp*"; Desc = "Xbox Console Companion (legacy)" },
         @{Pattern = "*Xbox.TCUI*"; Desc = "Xbox TCUI" },
         @{Pattern = "*XboxSpeechToText*"; Desc = "Xbox Speech to Text" },
         @{Pattern = "*XboxIdentityProvider*"; Desc = "Xbox Identity" },
         @{Pattern = "*XboxGameOverlay*"; Desc = "Xbox Game Overlay" },
-        @{Pattern = "*XboxGamingOverlay*"; Desc = "Xbox Game Bar" }
+        @{Pattern = "*XboxGamingOverlay*"; Desc = "Xbox Game Bar" },
+        @{Pattern = "*AutodeskSketchBook*"; Desc = "Autodesk SketchBook" },
+        # OEM pre-installed bloat
+        @{Pattern = "*AmazonAlexa*"; Desc = "Amazon Alexa" },
+        @{Pattern = "*HPAudioSwitch*"; Desc = "HP Audio Switch" },
+        @{Pattern = "*HpAudioControl*"; Desc = "HP Audio Control" },
+        @{Pattern = "*DellDigitalDelivery*"; Desc = "Dell Digital Delivery" },
+        @{Pattern = "*LenovoSmartAppearance*"; Desc = "Lenovo Smart Appearance" },
+        @{Pattern = "*LenovoWelcome*"; Desc = "Lenovo Welcome" }
     )
     
     # Scan installed apps
@@ -3066,7 +3150,7 @@ function Remove-OldRestorePoints {
 }
 
 # ============================================
-# 16. DELETE OLD LOG FILES
+# 16. CLEANUP SCRIPT LOGS & REPORTS
 # ============================================
 function Remove-OldLogs {
     param([switch]$Auto)
@@ -3075,7 +3159,7 @@ function Remove-OldLogs {
     Write-Host "CLEANUP SCRIPT LOGS & REPORTS" -ForegroundColor Cyan
     Write-Host "========================================`n" -ForegroundColor Cyan
     
-    $patterns = @("Optimizer_Log_*.txt", "System_Health_*.txt", "battery-report.html")
+    $patterns = @("Optimizer_Log_*.csv", "System_Health_*.html", "battery-report.html")
     $days = $Config.LogCleanupDays
     
     # Check for files
@@ -3649,7 +3733,7 @@ function New-RestorePoint {
 # ============================================
 function Invoke-AllOptimizations {
     Write-Host "`n========================================" -ForegroundColor Cyan
-    Write-Host "RUN ALL OPTIMIZATIONS (SAFE MODE)" -ForegroundColor Cyan
+    Write-Host "RUN ALL OPTIMIZATIONS (Automated)" -ForegroundColor Cyan
     Write-Host "========================================`n" -ForegroundColor Cyan
     
     Write-Host "This will run the following optimizations:" -ForegroundColor Yellow
@@ -3662,7 +3746,7 @@ function Invoke-AllOptimizations {
     Write-Host "       -> Scan registry for non-essential startup entries" -ForegroundColor DarkGray
     Write-Host "       -> Disable matching scheduled tasks (with protected whitelist)" -ForegroundColor DarkGray
     Write-Host "  STEP 4: Optimize RAM & Performance" -ForegroundColor White
-    Write-Host "       -> Trim idle process working sets (skip 22 protected processes)" -ForegroundColor DarkGray
+    Write-Host "       -> Trim idle process working sets (skip 28 protected processes)" -ForegroundColor DarkGray
     Write-Host "       -> Disable animations, set High Performance power plan" -ForegroundColor DarkGray
     Write-Host "  STEP 5: Privacy & Telemetry Shield" -ForegroundColor White
     Write-Host "       -> Apply 15+ privacy registry settings (telemetry, ad ID, location)" -ForegroundColor DarkGray
@@ -3759,7 +3843,7 @@ function Invoke-AllOptimizations {
     Write-Host "  Duration: $($duration.Minutes) minutes $($duration.Seconds) seconds" -ForegroundColor Gray
     Write-Host "  Log file: $logFile" -ForegroundColor Gray
     Write-Host ""
-    Write-Host "IMPORTANT: Restart your laptop for all changes to take effect!" -ForegroundColor Red
+    Write-Host "IMPORTANT: Restart your PC for all changes to take effect!" -ForegroundColor Red
     Write-Host ""
     Write-Host "Restart now? (Y/N): " -ForegroundColor Yellow -NoNewline
     do {
@@ -3813,6 +3897,7 @@ do {
         "18" { Repair-Windows }
         "19" { New-RestorePoint }
         "20" { Invoke-AllOptimizations }
+
         { $_ -eq "H" -or $_ -eq "h" } {
             Write-Host "`n========================================" -ForegroundColor Cyan
             Write-Host "   HELP - What Each Option Does" -ForegroundColor Cyan
@@ -3820,8 +3905,8 @@ do {
             Write-Host ""
             Write-Host "  DIAGNOSTICS & ANALYSIS:" -ForegroundColor Yellow
             Write-Host "   1. Full System Health Report" -ForegroundColor White
-            Write-Host "      10-section report: OS, CPU, RAM, disk, GPU, startup," -ForegroundColor Gray
-            Write-Host "      services, network, license status. Saved to Desktop." -ForegroundColor Gray
+            Write-Host "      10-section HTML dashboard: OS, CPU, RAM, disk, GPU," -ForegroundColor Gray
+            Write-Host "      startup, services, network, license. Opens in Browser." -ForegroundColor Gray
             Write-Host "   2. Quick RAM & CPU Check" -ForegroundColor White
             Write-Host "      Instant snapshot with visual bars, uptime, process count." -ForegroundColor Gray
             Write-Host "   3. Identify Heavy Processes" -ForegroundColor White
@@ -3838,7 +3923,7 @@ do {
             Write-Host "  PERFORMANCE & TWEAKS:" -ForegroundColor Yellow
             Write-Host "   7. Optimize Startup" -ForegroundColor White
             Write-Host "      Scans & disables bloatware startup entries + related tasks." -ForegroundColor Gray
-            Write-Host "      Database of 80+ known non-essential programs." -ForegroundColor Gray
+            Write-Host "      Database of 150+ known non-essential programs." -ForegroundColor Gray
             Write-Host "   8. Optimize RAM & Performance" -ForegroundColor White
             Write-Host "      Trims idle working sets (EmptyWorkingSet API), disables" -ForegroundColor Gray
             Write-Host "      animations, High Performance power plan, Game DVR, Cortana." -ForegroundColor Gray
@@ -3859,10 +3944,10 @@ do {
             Write-Host ""
             Write-Host "  CLEANING & DEBLOATING:" -ForegroundColor Yellow
             Write-Host "  13. Deep Disk Clean" -ForegroundColor White
-            Write-Host "      7-step cleanup: temp, 12 browser caches, WU cache, old" -ForegroundColor Gray
-            Write-Host "      logs, thumbnails, CleanMgr, SSD TRIM / HDD defrag." -ForegroundColor Gray
+            Write-Host "      5-step cleanup: temp, browser caches, WU cache, old" -ForegroundColor Gray
+            Write-Host "      logs, SSD TRIM / HDD defrag." -ForegroundColor Gray
             Write-Host "  14. Bloatware Uninstaller" -ForegroundColor White
-            Write-Host "      2-tier scan: definite junk (30+) + popular apps (25+)." -ForegroundColor Gray
+            Write-Host "      2-tier scan: definite junk (28) + popular apps (36)." -ForegroundColor Gray
             Write-Host "      4 modes: junk only, all, junk+choose, individual Y/N." -ForegroundColor Gray
             Write-Host "  15. Clean Old Restore Points" -ForegroundColor White
             Write-Host "      Deletes all but the $($Config.RestorePointsToKeep) newest restore points to free space." -ForegroundColor Gray
@@ -3891,7 +3976,7 @@ do {
         }
         "0" { 
             $exitMsg1 = "Thanks for using the Optimizer v$scriptVersion!"
-            $exitMsg2 = "Keep your laptop running smoothly!"
+            $exitMsg2 = "Keep your PC running smoothly!"
             Write-Host ""
             Write-Host "   +============================================+" -ForegroundColor Green
             Write-Host "   |  $($exitMsg1.PadRight(42))|" -ForegroundColor Green
