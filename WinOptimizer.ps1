@@ -73,7 +73,7 @@
 # Version: 4.0
 # ============================================
 
-# ── Admin check FIRST — exit before creating any files ──
+# -- Admin check FIRST — exit before creating any files --
 if (-NOT ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole] "Administrator")) {
     Write-Host "`nERROR: This script requires Administrator privileges!" -ForegroundColor Red
     Write-Host "Right-click PowerShell and select 'Run as Administrator'" -ForegroundColor Yellow
@@ -496,10 +496,14 @@ function Get-SystemInfo {
     $htmlBody += "</table>"
     
     try {
-        $ping = Test-Connection -ComputerName 8.8.8.8 -Count 1 -ErrorAction Stop
-        $latencyProp = if ($ping[0].PSObject.Properties['Latency']) { 'Latency' } else { 'ResponseTime' }
-        $avgLatency = [math]::Round(($ping | Measure-Object -Property $latencyProp -Average).Average, 2)
-        $htmlBody += "<div style='margin: 0 20px; color: #cbd5e1;'>Internet Latency: <span class='good'>${avgLatency}ms</span></div>"
+        $sw = [System.Diagnostics.Stopwatch]::StartNew()
+        $request = [System.Net.WebRequest]::Create("http://1.1.1.1")
+        $request.Timeout = 2000
+        $request.Method = "HEAD"
+        $null = $request.GetResponse()
+        $sw.Stop()
+        $avgLatency = $sw.ElapsedMilliseconds
+        $htmlBody += "<div style='margin: 0 20px; color: #cbd5e1;'>Internet Latency: <span class='good'>${avgLatency}ms (HTTP)</span></div>"
     }
     catch {
         $htmlBody += "<div style='margin: 0 20px;' class='crit'>Internet Latency: DISCONNECTED</div>"
@@ -820,7 +824,8 @@ function Get-DiskHealth {
     $volumes = Get-Volume | Where-Object { $_.DriveLetter -and $_.Size -gt 0 -and $_.DriveType -eq "Fixed" }
     foreach ($vol in $volumes) {
         try {
-            Optimize-Volume -DriveLetter $vol.DriveLetter -Analyze -ErrorAction SilentlyContinue | Out-Null
+            Write-Host "  Analyzing Drive $($vol.DriveLetter)..." -ForegroundColor Gray
+            Optimize-Volume -DriveLetter $vol.DriveLetter -Analyze -ErrorAction SilentlyContinue
             Write-Host "`n  Drive $($vol.DriveLetter): File System: $($vol.FileSystem)" -ForegroundColor White
         }
         catch {}
@@ -956,7 +961,7 @@ function Optimize-Startup {
     Write-Host "SMART STARTUP OPTIMIZER" -ForegroundColor Cyan
     Write-Host "========================================`n" -ForegroundColor Cyan
     
-    # ── Protected patterns: drivers, security, system essentials ──
+    # -- Protected patterns: drivers, security, system essentials --
     # These will NEVER be disabled regardless of user choice
     $protectedPatterns = @(
         # Windows Security & Antivirus
@@ -1009,10 +1014,10 @@ function Optimize-Startup {
         "KeePass*", "NordPass*", "RoboForm*", "Keeper*"
     )
     
-    # ── Known non-essential apps with descriptions and categories ──
+    # -- Known non-essential apps with descriptions and categories --
     # Organized by category for easy maintenance
     $knownNonEssential = @(
-        # ─── Communication ───
+        # --- Communication ---
         @{Pattern = "Discord"; Desc = "Discord"; Category = "Communication" },
         @{Pattern = "DiscordUpdate*"; Desc = "Discord Updater"; Category = "Updater" },
         @{Pattern = "Teams*"; Desc = "Microsoft Teams"; Category = "Communication" },
@@ -1031,7 +1036,7 @@ function Optimize-Startup {
         @{Pattern = "Franz*"; Desc = "Franz Messenger"; Category = "Communication" },
         @{Pattern = "Rambox*"; Desc = "Rambox"; Category = "Communication" },
 
-        # ─── Gaming ───
+        # --- Gaming ---
         @{Pattern = "Steam*"; Desc = "Steam Client"; Category = "Gaming" },
         @{Pattern = "EpicGames*"; Desc = "Epic Games Launcher"; Category = "Gaming" },
         @{Pattern = "EpicWebHelper*"; Desc = "Epic Web Helper"; Category = "Gaming" },
@@ -1051,7 +1056,7 @@ function Optimize-Startup {
         @{Pattern = "Playnite*"; Desc = "Playnite Game Launcher"; Category = "Gaming" },
         @{Pattern = "GameBar*"; Desc = "Xbox Game Bar"; Category = "Gaming" },
 
-        # ─── Entertainment & Media ───
+        # --- Entertainment & Media ---
         @{Pattern = "Spotify*"; Desc = "Spotify"; Category = "Entertainment" },
         @{Pattern = "iTunesHelper*"; Desc = "iTunes Helper"; Category = "Entertainment" },
         @{Pattern = "iTunes*"; Desc = "iTunes"; Category = "Entertainment" },
@@ -1062,7 +1067,7 @@ function Optimize-Startup {
         @{Pattern = "Deezer*"; Desc = "Deezer"; Category = "Entertainment" },
         @{Pattern = "Tidal*"; Desc = "Tidal Music"; Category = "Entertainment" },
 
-        # ─── Cloud Sync ───
+        # --- Cloud Sync ---
         @{Pattern = "OneDrive*"; Desc = "Microsoft OneDrive"; Category = "Cloud Sync" },
         @{Pattern = "Dropbox"; Desc = "Dropbox"; Category = "Cloud Sync" },
         @{Pattern = "GoogleDrive*"; Desc = "Google Drive"; Category = "Cloud Sync" },
@@ -1074,7 +1079,7 @@ function Optimize-Startup {
         @{Pattern = "Nextcloud*"; Desc = "Nextcloud Client"; Category = "Cloud Sync" },
         @{Pattern = "Resilio*"; Desc = "Resilio Sync"; Category = "Cloud Sync" },
 
-        # ─── Updaters (almost always safe to disable) ───
+        # --- Updaters (almost always safe to disable) ---
         @{Pattern = "Adobe*Update*"; Desc = "Adobe Updater"; Category = "Updater" },
         @{Pattern = "AdobeAAM*"; Desc = "Adobe Application Manager"; Category = "Updater" },
         @{Pattern = "CCXProcess*"; Desc = "Adobe Creative Cloud"; Category = "Updater" },
@@ -1094,7 +1099,7 @@ function Optimize-Startup {
         @{Pattern = "Lenovo*Update*"; Desc = "Lenovo Update Service"; Category = "Updater" },
         @{Pattern = "ASUSUpdate*"; Desc = "ASUS Update Service"; Category = "Updater" },
 
-        # ─── Productivity ───
+        # --- Productivity ---
         @{Pattern = "Grammarly*"; Desc = "Grammarly"; Category = "Productivity" },
         @{Pattern = "Canva*"; Desc = "Canva"; Category = "Productivity" },
         @{Pattern = "Notion*"; Desc = "Notion"; Category = "Productivity" },
@@ -1108,7 +1113,7 @@ function Optimize-Startup {
 
 
 
-        # ─── VPN Services ───
+        # --- VPN Services ---
         @{Pattern = "NordVPN*"; Desc = "NordVPN"; Category = "VPN" },
         @{Pattern = "ExpressVPN*"; Desc = "ExpressVPN"; Category = "VPN" },
         @{Pattern = "Windscribe*"; Desc = "Windscribe VPN"; Category = "VPN" },
@@ -1121,7 +1126,7 @@ function Optimize-Startup {
         @{Pattern = "TunnelBear*"; Desc = "TunnelBear VPN"; Category = "VPN" },
         @{Pattern = "Hotspot*Shield*"; Desc = "Hotspot Shield VPN"; Category = "VPN" },
 
-        # ─── Peripherals & Hardware Utilities ───
+        # --- Peripherals & Hardware Utilities ---
         @{Pattern = "LogiOptions*"; Desc = "Logitech Options+"; Category = "Peripheral" },
         @{Pattern = "LogiBolt*"; Desc = "Logitech Bolt"; Category = "Peripheral" },
         @{Pattern = "LogiTune*"; Desc = "Logitech Tune"; Category = "Peripheral" },
@@ -1140,22 +1145,22 @@ function Optimize-Startup {
         @{Pattern = "Plantronics*"; Desc = "Plantronics Hub"; Category = "Peripheral" },
         @{Pattern = "Sonos*"; Desc = "Sonos Controller"; Category = "Peripheral" },
 
-        # ─── Creative & Streaming ───
+        # --- Creative & Streaming ---
         @{Pattern = "Figma*"; Desc = "Figma Agent"; Category = "Creative" },
         @{Pattern = "OBS*"; Desc = "OBS Studio (if set to auto-start)"; Category = "Creative" },
         @{Pattern = "Streamlabs*"; Desc = "Streamlabs Desktop"; Category = "Creative" },
         @{Pattern = "XSplit*"; Desc = "XSplit Broadcaster"; Category = "Creative" },
         @{Pattern = "DaVinci*"; Desc = "DaVinci Resolve"; Category = "Creative" },
 
-        # ─── Dev Tools ───
+        # --- Dev Tools ---
         @{Pattern = "Docker*"; Desc = "Docker Desktop"; Category = "Dev Tool" },
 
-        # ─── Browser Auto-Launch ───
+        # --- Browser Auto-Launch ---
         @{Pattern = "MicrosoftEdge*Auto*"; Desc = "Edge Auto-Launch"; Category = "Browser" },
         @{Pattern = "Google*Chrome*Auto*"; Desc = "Chrome Auto-Launch"; Category = "Browser" },
         @{Pattern = "Firefox*Auto*"; Desc = "Firefox Auto-Launch"; Category = "Browser" },
 
-        # ─── System Utilities / Bloat ───
+        # --- System Utilities / Bloat ---
         @{Pattern = "Cortana*"; Desc = "Cortana"; Category = "Other" },
         @{Pattern = "YourPhone*"; Desc = "Phone Link"; Category = "Other" },
         @{Pattern = "PhoneLink*"; Desc = "Phone Link"; Category = "Other" },
@@ -1178,7 +1183,7 @@ function Optimize-Startup {
         @{Pattern = "Wondershare*"; Desc = "Wondershare Software"; Category = "Other" },
         @{Pattern = "Cybereason*"; Desc = "Cybereason (if not corporate)"; Category = "Other" },
 
-        # ─── OEM Bloatware ───
+        # --- OEM Bloatware ---
         @{Pattern = "DellSupportAssist*"; Desc = "Dell SupportAssist"; Category = "OEM Bloat" },
         @{Pattern = "DellOptimizer*"; Desc = "Dell Optimizer"; Category = "OEM Bloat" },
         @{Pattern = "Dell*Inc*"; Desc = "Dell Software"; Category = "OEM Bloat" },
@@ -1200,7 +1205,7 @@ function Optimize-Startup {
         @{Pattern = "Samsung*Magician*"; Desc = "Samsung Magician"; Category = "OEM Bloat" },
         @{Pattern = "Samsung*Settings*"; Desc = "Samsung Settings"; Category = "OEM Bloat" },
 
-        # ─── Remote Desktop / Support ───
+        # --- Remote Desktop / Support ---
         @{Pattern = "TeamViewer*"; Desc = "TeamViewer"; Category = "Remote" },
         @{Pattern = "AnyDesk*"; Desc = "AnyDesk"; Category = "Remote" },
         @{Pattern = "Parsec*"; Desc = "Parsec Remote Desktop"; Category = "Remote" },
@@ -1208,7 +1213,7 @@ function Optimize-Startup {
         @{Pattern = "Chrome*Remote*Desktop*"; Desc = "Chrome Remote Desktop"; Category = "Remote" }
     )
     
-    # ── Phase 1: Scan all startup entries ──
+    # -- Phase 1: Scan all startup entries --
     Write-Log "[1/3] Scanning startup entries..." "STEP"
     
     $runKeys = @(
@@ -1245,7 +1250,7 @@ function Optimize-Startup {
         return
     }
     
-    # ── Phase 2: Categorize entries ──
+    # -- Phase 2: Categorize entries --
     $protectedItems = @()
     $nonEssentialItems = @()
     $unknownItems = @()
@@ -1296,7 +1301,7 @@ function Optimize-Startup {
         }
     }
     
-    # ── Phase 3: Display categorized results ──
+    # -- Phase 3: Display categorized results --
     Write-Host "`nFound $($allEntries.Count) startup entries on this PC:`n" -ForegroundColor White
     
     # Protected items
@@ -1340,15 +1345,22 @@ function Optimize-Startup {
         return
     }
     
-    # ── Phase 4: User choice ──
+    # -- Phase 4: User choice --
     Write-Host "  Choose action:" -ForegroundColor Yellow
     if ($nonEssentialItems.Count -gt 0) {
         Write-Host "    A = Disable ALL non-essential ($($nonEssentialItems.Count) items)" -ForegroundColor White
     }
     Write-Host "    S = Select individually (Y/N for each item)" -ForegroundColor White
     Write-Host "    N = Skip (change nothing)" -ForegroundColor White
-    Write-Host "`n  Choice ($(if($nonEssentialItems.Count -gt 0){'A/S/N'}else{'S/N'})): " -ForegroundColor Yellow -NoNewline
-    $action = Read-Host
+    
+    if ($script:skipPause) {
+        Write-Host "`n  [Auto-Mode] Defaulting to Action 'A' (Disable ALL non-essential)." -ForegroundColor Yellow
+        $action = "A"
+    }
+    else {
+        Write-Host "`n  Choice ($(if($nonEssentialItems.Count -gt 0){'A/S/N'}else{'S/N'})): " -ForegroundColor Yellow -NoNewline
+        $action = Read-Host
+    }
     
     $disabledCount = 0
     $disabledPatterns = @()   # Track what was disabled to clean matching tasks
@@ -1377,7 +1389,7 @@ function Optimize-Startup {
             # Ask about unknowns separately
             if ($unknownItems.Count -gt 0) {
                 Write-Host ""
-                if (Get-ValidYN "  Also review $($unknownItems.Count) unknown item(s)?") {
+                if (-not $script:skipPause -and (Get-ValidYN "  Also review $($unknownItems.Count) unknown item(s)?")) {
                     $i = 0
                     foreach ($item in $unknownItems) {
                         $i++
@@ -1442,7 +1454,7 @@ function Optimize-Startup {
         }
     }
     
-    # ── Phase 5: Clean matching scheduled tasks ──
+    # -- Phase 5: Clean matching scheduled tasks --
     Write-Log "`n[2/3] Cleaning related scheduled tasks..." "STEP"
     $taskDisabled = 0
     $disabledTaskNames = @()   # Track already-disabled tasks to avoid duplicates
@@ -1510,7 +1522,7 @@ function Optimize-Startup {
         Write-Host "  No related scheduled tasks found." -ForegroundColor Gray
     }
     
-    # ── Summary ──
+    # -- Summary --
     Write-Log "`n[3/3] Summary" "STEP"
     Write-Host "`n  Startup entries disabled: $disabledCount" -ForegroundColor Green
     Write-Host "  Scheduled tasks disabled: $taskDisabled" -ForegroundColor Green
@@ -1533,15 +1545,13 @@ function Optimize-RAM {
     
     # Visual Effects — disable UI animations but keep GPU/DWM hardware acceleration
     # (VisualFXSetting=3 would break GPU-composited video in browsers like Instagram Reels)
-    Write-Log "[1/6] Optimizing visual effects..." "STEP"
+    Write-Log "[1/5] Optimizing visual effects..." "STEP"
     
     # Keep font smoothing for readability
     Set-ItemProperty -Path "HKCU:\Control Panel\Desktop" -Name "FontSmoothing" -Value 2 -ErrorAction SilentlyContinue
     
     # Disable specific animations (not the blanket "Best Performance" mode)
     $animSettings = @(
-        @{Path = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"; Name = "TaskbarAnimations"; Value = 0 },
-        @{Path = "HKCU:\Control Panel\Desktop\WindowMetrics"; Name = "MinAnimate"; Value = "0" },
         @{Path = "HKCU:\Control Panel\Desktop"; Name = "MenuShowDelay"; Value = "50" },
         @{Path = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"; Name = "ListviewShadow"; Value = 0 },
         @{Path = "HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced"; Name = "ListviewAlphaSelect"; Value = 0 }
@@ -1554,10 +1564,11 @@ function Optimize-RAM {
     
     # Disable transparency
     Set-ItemProperty -Path "HKCU:\Software\Microsoft\Windows\CurrentVersion\Themes\Personalize" -Name "EnableTransparency" -Value 0 -ErrorAction SilentlyContinue
+    Write-Host "  Note: Transparency effects will be disabled (cosmetic change, can re-enable in Settings > Personalization > Colors)" -ForegroundColor Gray
     Write-Log "Visual effects optimized (GPU acceleration preserved)" "SUCCESS"
     
     # Power Plan
-    Write-Log "`n[2/6] Optimizing Power Plan..." "STEP"
+    Write-Log "`n[2/5] Optimizing Power Plan..." "STEP"
     try {
         # Save current plan so user knows what to restore
         $currentPlan = (powercfg /getactivescheme 2>$null) -replace '.*:\s*', '' -replace '\s*\(.*', ''
@@ -1569,7 +1580,13 @@ function Optimize-RAM {
         if ($hasBattery) {
             Write-Host "  Battery detected (laptop/tablet)." -ForegroundColor Yellow
             Write-Host "  High Performance will significantly reduce battery life." -ForegroundColor Yellow
-            if (-not (Get-ValidYN "  Switch to High Performance anyway?")) {
+            
+            if ($script:skipPause) {
+                Write-Host "  [Auto-Mode] Defaulting to NO (Keeping current power plan to save battery)." -ForegroundColor Yellow
+                $applyPlan = $false
+                Write-Log "Power plan kept as-is (Auto-Mode — battery detected)" "INFO"
+            }
+            elseif (-not (Get-ValidYN "  Switch to High Performance anyway?")) {
                 $applyPlan = $false
                 Write-Log "Power plan kept as-is (user declined — battery detected)" "INFO"
             }
@@ -1602,15 +1619,11 @@ function Optimize-RAM {
     }
     
     # Disable Game Mode & Game Bar
-    Write-Log "`n[3/6] Disabling Game Mode & Game Bar..." "STEP"
+    Write-Log "`n[3/5] Disabling Game Mode & Game Bar..." "STEP"
     $gameSettings = @{
         "HKCU:\Software\Microsoft\GameBar" = @{
             "AutoGameModeEnabled" = 0
-            "AllowAutoGameMode"   = 0
             "ShowStartupPanel"    = 0
-        }
-        "HKCU:\System\GameConfigStore"     = @{
-            "GameDVR_Enabled" = 0
         }
     }
     
@@ -1620,24 +1633,18 @@ function Optimize-RAM {
             Set-ItemProperty -Path $path -Name $setting.Key -Value $setting.Value -ErrorAction SilentlyContinue
         }
     }
-    Write-Log "Game Mode & Game DVR disabled" "SUCCESS"
+    Write-Log "Game Mode disabled & Game DVR kept enabled" "SUCCESS"
     
-    # Disable Cortana
-    Write-Log "`n[4/6] Disabling Cortana..." "STEP"
-    $cortanaPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\Windows Search"
-    if (!(Test-Path $cortanaPath)) { New-Item -Path $cortanaPath -Force | Out-Null }
-    Set-ItemProperty -Path $cortanaPath -Name "AllowCortana" -Value 0 -ErrorAction SilentlyContinue
-    Write-Log "Cortana disabled" "SUCCESS"
-    
+
     # Optimize NTFS
-    Write-Log "`n[5/6] Optimizing NTFS settings..." "STEP"
+    Write-Log "`n[4/5] Optimizing NTFS settings..." "STEP"
     fsutil behavior set DisableLastAccess 1 2>$null | Out-Null
     # Note: Disable8dot3 intentionally not touched — it's permanent, system-wide,
     # and can break legacy software (Adobe installers, some games) that rely on short filenames.
     Write-Log "NTFS optimized (disabled last access timestamps)" "SUCCESS"
     
     # Trim working sets system-wide (real RAM optimization)
-    Write-Log "`n[6/6] Trimming process working sets (freeing idle RAM)..." "STEP"
+    Write-Log "`n[5/5] Trimming process working sets (freeing idle RAM)..." "STEP"
     try {
         # Load Windows API for EmptyWorkingSet — this is what real RAM optimizers use
         Add-Type -TypeDefinition @"
@@ -1766,9 +1773,16 @@ function Optimize-Services {
         @{Name = "dmwappushservice"; Desc = "WAP Push Message Service" },
         @{Name = "MapsBroker"; Desc = "Downloaded Maps Manager" },
         @{Name = "RetailDemo"; Desc = "Retail Demo Service" },
-        @{Name = "WMPNetworkSvc"; Desc = "Windows Media Player Sharing" },
-        @{Name = "wisvc"; Desc = "Windows Insider Service" }
+        @{Name = "WMPNetworkSvc"; Desc = "Windows Media Player Sharing" }
     )
+    
+    $isInsider = (Get-ItemProperty "HKLM:\SOFTWARE\Microsoft\Windows NT\CurrentVersion" -ErrorAction SilentlyContinue).BuildBranch -match "insider|canary|dev|beta"
+    if (-not $isInsider) {
+        $servicesToDisable += @{Name = "wisvc"; Desc = "Windows Insider Service (not an Insider build)" }
+    }
+    else {
+        Write-Host "  Insider build detected — wisvc kept enabled" -ForegroundColor Green
+    }
     
     # Only disable SysMain (Superfetch) on HDDs -- it improves performance on SSDs
     if ($bootDiskType -eq "HDD") {
@@ -1952,13 +1966,18 @@ function Repair-Network {
     Write-Host "Testing current connection..." -ForegroundColor Gray
     $beforeLatency = $null
     try {
-        $beforePing = Test-Connection -ComputerName 8.8.8.8 -Count 1 -ErrorAction Stop
-        $latencyProp = if ($beforePing[0].PSObject.Properties['Latency']) { 'Latency' } else { 'ResponseTime' }
-        $beforeLatency = [math]::Round(($beforePing | Measure-Object -Property $latencyProp -Average).Average, 2)
+        # Fallback to HTTP for more reliable connection testing (ping is often blocked)
+        $sw = [System.Diagnostics.Stopwatch]::StartNew()
+        $request = [System.Net.WebRequest]::Create("http://1.1.1.1")
+        $request.Timeout = 3000
+        $request.Method = "HEAD"
+        $null = $request.GetResponse()
+        $sw.Stop()
+        $beforeLatency = $sw.ElapsedMilliseconds
         Write-Host "  Current latency: ${beforeLatency}ms" -ForegroundColor Gray
     }
     catch {
-        Write-Host "  Cannot reach internet" -ForegroundColor Red
+        Write-Host "  Cannot reach internet (or ping blocked)" -ForegroundColor Red
     }
     
     # Check for VPN/Virtual adapters (Safety Check)
@@ -2000,13 +2019,70 @@ function Repair-Network {
         netsh winsock reset 2>$null | Out-Null
         Write-Log "Winsock catalog reset" "SUCCESS"
         
-        Write-Log "`n[4/7] Resetting firewall rules..." "STEP"
-        if (Get-ValidYN "  Are you in an organization or do you have custom firewall rules?") {
+        Write-Log "`n[4/7] Resetting firewall rules (Selective)..." "STEP"
+        $isOrg = $false
+        if ($null -ne $script:autoIsOrg) {
+            $isOrg = $script:autoIsOrg
+        }
+        else {
+            $isOrg = Get-ValidYN "  Are you in an organization or do you have custom firewall rules?"
+        }
+        
+        if ($isOrg) {
             Write-Log "Skipped firewall reset (custom rules preserved)" "WARNING"
         }
         else {
+            Write-Host "  Backing up firewall rules for common apps..." -ForegroundColor Gray
+            
+            # Common apps user does not want reset
+            $safeApps = @(
+                # Browsers
+                "Chrome", "Edge", "Firefox", "Brave", "Opera", "Comet", "Vivaldi",
+                # Gaming
+                "Steam", "Epic Games", "Riot Games", "Battle.net", "Origin", "EA Desktop", "Ubisoft", "GOG Galaxy", "Xbox", "Minecraft", "Roblox", "Valorant", "League of Legends", "Overwatch", "Apex", "Fortnite",
+                # Communication / Social
+                "Discord", "WhatsApp", "Telegram", "Zoom", "Teams", "Skype", "Slack", "Webex", "Signal", "Viber", "Line",
+                # Media / Streaming
+                "Spotify", "iTunes", "VLC", "OBS Studio", "Streamlabs", "Twitch", "Plex",
+                # Productivity / Utility
+                "OneDrive", "Google Drive", "Dropbox", "Evernote", "Notion", "AnyDesk", "TeamViewer", "Parsec",
+                # Development
+                "VS Code", "Visual Studio", "GitHub Desktop", "Docker", "Postman", "IntelliJ", "PyCharm", "WebStorm", "Android Studio"
+            )
+            $safeRules = @()
+            
+            try {
+                $allRules = Get-NetFirewallRule -ErrorAction SilentlyContinue
+                foreach ($rule in $allRules) {
+                    foreach ($app in $safeApps) {
+                        if ($rule.DisplayName -like "*$app*" -or $rule.Description -like "*$app*") {
+                            $safeRules += $rule
+                            break
+                        }
+                    }
+                }
+            }
+            catch {}
+            
             netsh advfirewall reset 2>$null | Out-Null
             Write-Log "Firewall rules reset to default" "SUCCESS"
+            
+            # Restore safe rules
+            if ($safeRules.Count -gt 0) {
+                Write-Host "  Restoring $($safeRules.Count) rules for common apps..." -ForegroundColor Gray
+                $restoredCount = 0
+                foreach ($rule in $safeRules) {
+                    try {
+                        # A quick way to "restore" a rule is to set it again if we have the full object, or just clone it to a new one
+                        if (-not [string]::IsNullOrWhiteSpace($rule.Program)) {
+                            New-NetFirewallRule -DisplayName $rule.DisplayName -Direction $rule.Direction -Action $rule.Action -Profile $rule.Profile -Program $rule.Program -ErrorAction SilentlyContinue | Out-Null
+                            $restoredCount++
+                        }
+                    }
+                    catch {}
+                }
+                Write-Log "Restored $restoredCount app rules (Discord, Spotify, browsers, games preserved)" "SUCCESS"
+            }
         }
     }
     else {
@@ -2065,8 +2141,15 @@ function Repair-Network {
         Write-Host "  2. Cloudflare DNS (1.1.1.1) - Fastest & private" -ForegroundColor White
         Write-Host "  3. Quad9 DNS (9.9.9.9) - Security focused" -ForegroundColor White
         Write-Host "  4. Keep current DNS" -ForegroundColor White
-        Write-Host "  Choice (1-4): " -ForegroundColor Yellow -NoNewline
-        $dnsChoice = Read-Host
+        
+        if ($null -ne $script:autoDnsChoice) {
+            $dnsChoice = $script:autoDnsChoice
+            Write-Host "`n  [Auto-Mode] Using pre-selected DNS choice: $dnsChoice" -ForegroundColor Yellow
+        }
+        else {
+            Write-Host "  Choice (1-4): " -ForegroundColor Yellow -NoNewline
+            $dnsChoice = Read-Host
+        }
         
         $primaryDNS = $null
         $secondaryDNS = $null
@@ -2105,9 +2188,13 @@ function Repair-Network {
     Start-Sleep -Seconds 3
     Write-Host "`nTesting connection after fixes..." -ForegroundColor Gray
     try {
-        $afterPing = Test-Connection -ComputerName 8.8.8.8 -Count 1 -ErrorAction Stop
-        $latencyProp = if ($afterPing[0].PSObject.Properties['Latency']) { 'Latency' } else { 'ResponseTime' }
-        $afterLatency = [math]::Round(($afterPing | Measure-Object -Property $latencyProp -Average).Average, 2)
+        $sw = [System.Diagnostics.Stopwatch]::StartNew()
+        $request = [System.Net.WebRequest]::Create("http://1.1.1.1")
+        $request.Timeout = 3000
+        $request.Method = "HEAD"
+        $null = $request.GetResponse()
+        $sw.Stop()
+        $afterLatency = $sw.ElapsedMilliseconds
         Write-Host "  New latency: ${afterLatency}ms" -ForegroundColor Gray
         
         if ($beforeLatency) {
@@ -2116,7 +2203,7 @@ function Repair-Network {
         }
     }
     catch {
-        Write-Host "  Connection test failed after fixes" -ForegroundColor Red
+        Write-Host "  Connection test failed" -ForegroundColor Red
     }
     
     Write-Log "`nNetwork fixes applied!" "SUCCESS"
@@ -2159,12 +2246,11 @@ function Set-PrivacyShield {
     
     # Disable Location Tracking
     Write-Log "`n[3/8] Disabling Location Tracking..." "STEP"
-    $locationPath = "HKLM:\SOFTWARE\Policies\Microsoft\Windows\LocationAndSensors"
+    $locationPath = "HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\DeviceAccess\Global\{BFA794E4-F964-4FDB-90F6-51056BFE4B44}"
     if (!(Test-Path $locationPath)) { New-Item -Path $locationPath -Force | Out-Null }
-    Set-ItemProperty -Path $locationPath -Name "DisableLocation" -Value 1 -ErrorAction SilentlyContinue
-    Set-ItemProperty -Path $locationPath -Name "DisableWindowsLocationProvider" -Value 1 -ErrorAction SilentlyContinue
-    $changesCount += 2
-    Write-Log "Location tracking disabled" "SUCCESS"
+    Set-ItemProperty -Path $locationPath -Name "Value" -Value "Deny" -ErrorAction SilentlyContinue
+    $changesCount += 1
+    Write-Log "Location tracking disabled for user (can re-enable in Settings)" "SUCCESS"
     
     # Disable Advertising ID
     Write-Log "`n[4/8] Disabling Advertising ID..." "STEP"
@@ -2507,7 +2593,7 @@ function Invoke-DiskCleanup {
     
     $totalCleaned = 0
     
-    # ── Step 1: Temp files, thumbnails, icon cache ──
+    # -- Step 1: Temp files, thumbnails, icon cache --
     Write-Log "[1/5] Clearing temp files & cache..." "STEP"
     
     # Deduplicate temp paths (TEMP and LOCALAPPDATA\Temp are often identical)
@@ -2548,7 +2634,7 @@ function Invoke-DiskCleanup {
     $totalCleaned += $tempSizeMB
     Write-Log "Temp files & cache: $(Format-Size $tempSizeMB) cleaned" "SUCCESS"
     
-    # ── Step 2: Browser caches ──
+    # -- Step 2: Browser caches --
     Write-Log "`n[2/5] Clearing browser caches..." "STEP"
     
     # Browser definitions: name, paths
@@ -2668,7 +2754,7 @@ function Invoke-DiskCleanup {
     $totalCleaned += $browserTotalMB
     Write-Log "Browser caches: $(Format-Size $browserTotalMB) cleaned" "SUCCESS"
     
-    # ── Step 3: Windows Update cache ──
+    # -- Step 3: Windows Update cache --
     Write-Log "`n[3/5] Clearing Windows Update cache..." "STEP"
     
     # Remember service states to restore properly
@@ -2702,7 +2788,7 @@ function Invoke-DiskCleanup {
     $totalCleaned += $wuSizeMB
     Write-Log "Windows Update cache: $(Format-Size $wuSizeMB) cleaned" "SUCCESS"
     
-    # ── Step 4: Old logs, crash dumps, and optional Recycle Bin ──
+    # -- Step 4: Old logs, crash dumps, and optional Recycle Bin --
     Write-Log "`n[4/5] Clearing old logs & crash dumps..." "STEP"
     
     $logFolders = @(
@@ -2741,7 +2827,7 @@ function Invoke-DiskCleanup {
         Write-Host "    Recycle Bin: Skipped (user choice)" -ForegroundColor Gray
     }
     
-    # ── Step 5: Drive optimization (SSD TRIM / HDD Defrag) ──
+    # -- Step 5: Drive optimization (SSD TRIM / HDD Defrag) --
     Write-Log "`n[5/5] Optimizing drives..." "STEP"
     $fixedVolumes = Get-Volume | Where-Object { $_.DriveLetter -and $_.DriveType -eq "Fixed" }
     foreach ($vol in $fixedVolumes) {
@@ -2778,7 +2864,7 @@ function Invoke-DiskCleanup {
         }
     }
     
-    # ── Final Results ──
+    # -- Final Results --
     Start-Sleep -Seconds 1
     $afterCleanup = Get-Volume -DriveLetter C -ErrorAction SilentlyContinue
     $afterFreeGB = [math]::Round($afterCleanup.SizeRemaining / 1GB, 2)
@@ -2817,7 +2903,7 @@ function Remove-Bloatware {
         "*.NET*", "*VCLibs*", "*UI.Xaml*", "*AppRuntime*", "*Framework*"
     )
     
-    # ── LIST 1: DEFINITE JUNK (nobody needs these pre-installed) ──
+    # -- LIST 1: DEFINITE JUNK (nobody needs these pre-installed) --
     $definiteJunk = @(
         # Junk games
         @{Pattern = "*CandyCrush*"; Desc = "Candy Crush Saga" },
@@ -2854,7 +2940,7 @@ function Remove-Bloatware {
         @{Pattern = "*CyberLink*"; Desc = "CyberLink Media" }
     )
     
-    # ── LIST 2: POPULAR APPS (pre-installed, but people often use them) ──
+    # -- LIST 2: POPULAR APPS (pre-installed, but people often use them) --
     $popularApps = @(
         @{Pattern = "*SpotifyMusic*"; Desc = "Spotify" },
         @{Pattern = "*Netflix*"; Desc = "Netflix" },
@@ -2878,11 +2964,11 @@ function Remove-Bloatware {
         @{Pattern = "*Whiteboard*"; Desc = "Microsoft Whiteboard" },
         @{Pattern = "*Plex*"; Desc = "Plex" },
         @{Pattern = "*Dolby*"; Desc = "Dolby Access" },
-        @{Pattern = "*GamingApp*"; Desc = "Xbox Gaming App" },
+        @{Pattern = "*GamingApp*"; Desc = "Xbox Gaming App (Required for Xbox Live games)" },
         @{Pattern = "*XboxApp*"; Desc = "Xbox Console Companion (legacy)" },
-        @{Pattern = "*Xbox.TCUI*"; Desc = "Xbox TCUI" },
+        @{Pattern = "*Xbox.TCUI*"; Desc = "Xbox TCUI (Required for Xbox Live games)" },
         @{Pattern = "*XboxSpeechToText*"; Desc = "Xbox Speech to Text" },
-        @{Pattern = "*XboxIdentityProvider*"; Desc = "Xbox Identity" },
+        @{Pattern = "*XboxIdentityProvider*"; Desc = "Xbox Identity (Required for Xbox Live games)" },
         @{Pattern = "*XboxGameOverlay*"; Desc = "Xbox Game Overlay" },
         @{Pattern = "*XboxGamingOverlay*"; Desc = "Xbox Game Bar" },
         @{Pattern = "*AutodeskSketchBook*"; Desc = "Autodesk SketchBook" },
@@ -2942,7 +3028,7 @@ function Remove-Bloatware {
         return
     }
     
-    # ── Display Results ──
+    # -- Display Results --
     if ($junkFound.Count -gt 0) {
         Write-Host "  DEFINITE JUNK ($($junkFound.Count) apps) - safe to remove:" -ForegroundColor Red
         foreach ($item in $junkFound) {
@@ -2959,7 +3045,7 @@ function Remove-Bloatware {
         Write-Host ""
     }
     
-    # ── Action Menu ──
+    # -- Action Menu --
     Write-Host "  --- What do you want to do? ---" -ForegroundColor DarkCyan
     if ($junkFound.Count -gt 0) {
         Write-Host "    1 = Remove JUNK ONLY ($($junkFound.Count) apps), keep popular apps (Recommended)" -ForegroundColor Green
@@ -3250,7 +3336,7 @@ function Update-Software {
     if (-not $wingetCmd) {
         Write-Log "Winget is not installed or not in PATH" "WARNING"
         
-        # ── Diagnose WHY winget is missing ──
+        # -- Diagnose WHY winget is missing --
         Write-Host "`n  Winget not found. Diagnosing..." -ForegroundColor Yellow
         
         $osBuild = [System.Environment]::OSVersion.Version.Build
@@ -3280,7 +3366,7 @@ function Update-Software {
             Write-Host "  Cause: App Installer may need updating or re-registering" -ForegroundColor Red
         }
         
-        # ── Offer one-click install from Microsoft Store ──
+        # -- Offer one-click install from Microsoft Store --
         if ($hasStore -and -not $isLTSC) {
             Write-Host ""
             if (Get-ValidYN "  Open Microsoft Store to install/update App Installer (winget)?") {
@@ -3290,7 +3376,7 @@ function Update-Software {
             }
         }
         
-        # ── Fallback: still offer basic update checks without winget ──
+        # -- Fallback: still offer basic update checks without winget --
         Write-Host "`n  --- Fallback Options (no winget needed) ---" -ForegroundColor DarkCyan
         Write-Host "    1 = Check pending Windows Updates" -ForegroundColor White
         Write-Host "    2 = Refresh Microsoft Store apps" -ForegroundColor White
@@ -3553,7 +3639,7 @@ function Repair-Windows {
             $sfcResult = Start-Process -FilePath "sfc.exe" -ArgumentList "/scannow" -Wait -PassThru -NoNewWindow
             
             if ($sfcResult.ExitCode -eq 0) {
-                Write-Log "SFC scan completed successfully" "SUCCESS"
+                Write-Log "SFC scan completed, check CBS.log" "SUCCESS"
             }
             else {
                 Write-Log "SFC completed with exit code: $($sfcResult.ExitCode)" "WARNING"
@@ -3568,7 +3654,7 @@ function Repair-Windows {
             if ($analyzeResult.ExitCode -eq 0) {
                 Write-Log "Component store analysis complete" "SUCCESS"
                 
-                if (Get-ValidYN "`n  Clean up component store? (frees disk space)") {
+                if (Get-ValidYN "`n  Clean up component store? (frees disk space, permanently removes update rollback)") {
                     $cleanResult = Start-Process -FilePath "dism.exe" -ArgumentList "/Online /Cleanup-Image /StartComponentCleanup /ResetBase" -Wait -PassThru -NoNewWindow
                     if ($cleanResult.ExitCode -eq 0) {
                         Write-Log "Component store cleaned up successfully" "SUCCESS"
@@ -3591,7 +3677,7 @@ function Repair-Windows {
             $sfcResult = Start-Process -FilePath "sfc.exe" -ArgumentList "/scannow" -Wait -PassThru -NoNewWindow
             
             if ($sfcResult.ExitCode -eq 0) {
-                Write-Log "SFC scan completed successfully -- no integrity violations found" "SUCCESS"
+                Write-Log "SFC scan completed, check CBS.log" "SUCCESS"
             }
             else {
                 Write-Log "SFC completed with exit code: $($sfcResult.ExitCode)" "WARNING"
@@ -3780,6 +3866,22 @@ function Invoke-AllOptimizations {
     $script:skipPause = $true
     $script:LoggingEnabled = $true
     
+    Write-Host "`n  [Pre-Check] We need some answers for the Network Repair step so it can run unattended." -ForegroundColor Yellow
+    if (Get-ValidYN "  Are you in an organization or do you have custom firewall rules?") {
+        $script:autoIsOrg = $true
+    }
+    else {
+        $script:autoIsOrg = $false
+    }
+    
+    Write-Host "`n  Choose DNS Provider:" -ForegroundColor Yellow
+    Write-Host "  1. Google DNS (8.8.8.8) - Fast & reliable" -ForegroundColor White
+    Write-Host "  2. Cloudflare DNS (1.1.1.1) - Fastest & private" -ForegroundColor White
+    Write-Host "  3. Quad9 DNS (9.9.9.9) - Security focused" -ForegroundColor White
+    Write-Host "  4. Keep current DNS" -ForegroundColor White
+    Write-Host "  Choice (1-4): " -ForegroundColor Yellow -NoNewline
+    $script:autoDnsChoice = Read-Host
+
     $stepNames = @(
         "Creating Restore Point",
         "Optimizing Services",
@@ -3818,7 +3920,10 @@ function Invoke-AllOptimizations {
             Write-Log "Step $stepNum ($($stepNames[$s])) failed: $($_.Exception.Message)" "ERROR"
             $failedSteps += $stepNames[$s]
             if ($stepNum -lt $totalSteps) {
-                if (-not (Get-ValidYN "  Step failed. Continue with remaining steps?")) {
+                if ($script:skipPause) {
+                    Write-Log "  [Auto-Mode] Continuing automatically after failure." "WARNING"
+                }
+                elseif (-not (Get-ValidYN "  Step failed. Continue with remaining steps?")) {
                     Write-Log "Optimization aborted by user after step $stepNum failure" "WARNING"
                     break
                 }
@@ -3831,6 +3936,8 @@ function Invoke-AllOptimizations {
     $duration = $endTime - $startTime
     $script:skipPause = $false
     $script:LoggingEnabled = $false
+    $script:autoIsOrg = $null
+    $script:autoDnsChoice = $null
     
     Write-Host "`n========================================" -ForegroundColor Green
     Write-Host "ALL OPTIMIZATIONS COMPLETE!" -ForegroundColor Green
@@ -3926,7 +4033,7 @@ do {
             Write-Host "      Database of 150+ known non-essential programs." -ForegroundColor Gray
             Write-Host "   8. Optimize RAM & Performance" -ForegroundColor White
             Write-Host "      Trims idle working sets (EmptyWorkingSet API), disables" -ForegroundColor Gray
-            Write-Host "      animations, High Performance power plan, Game DVR, Cortana." -ForegroundColor Gray
+            Write-Host "      animations, High Performance power plan, Game Mode, Game Bar." -ForegroundColor Gray
             Write-Host "   9. Optimize Windows Services" -ForegroundColor White
             Write-Host "      Disables telemetry, maps, retail demo services. SSD/HDD" -ForegroundColor Gray
             Write-Host "      auto-detect for Superfetch. Tunes Defender CPU." -ForegroundColor Gray
@@ -3983,7 +4090,9 @@ do {
             Write-Host "   |  $($exitMsg2.PadRight(42))|" -ForegroundColor Green
             Write-Host "   +============================================+" -ForegroundColor Green
             Write-Host ""
-            Write-Host "   Log: $logFile" -ForegroundColor DarkGray
+            if (Test-Path $logFile) {
+                Write-Host "   Log: $logFile" -ForegroundColor DarkGray
+            }
             Write-Log "=== Optimizer closed ===" "INFO"
             Start-Sleep -Seconds 2
             exit
@@ -3995,3 +4104,4 @@ do {
     }
     
 } while ($true)
+

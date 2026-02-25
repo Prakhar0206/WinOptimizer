@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256">
+  <defs>
+    <linearGradient id="glow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#22d3ee" />
+      <stop offset="100%" stop-color="#a855f7" />
+    </linearGradient>
+  </defs>
+  <rect width="256" height="256" rx="56" fill="#060608" />
+  <!-- Terminal Prompt ">" -->
+  <path d="M 64,80 L 114,128 L 64,176" fill="none" stroke="url(#glow)" stroke-width="24" stroke-linecap="round" stroke-linejoin="round" />
+  <!-- Terminal Cursor "_" -->
+  <path d="M 134,176 L 194,176" fill="none" stroke="#a855f7" stroke-width="24" stroke-linecap="round" />
+</svg>

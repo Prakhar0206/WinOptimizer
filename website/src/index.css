@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-background text-foreground bg-fixed;
+    font-family: "Geist", "Inter", system-ui, sans-serif;
+  }
+}
+
+/* Custom blurred radial background gradients */
+.bg-glow-cyan {
+  background: radial-gradient(
+    circle at top left,
+    rgba(34, 211, 238, 0.12),
+    transparent 40%
+  );
+}
+.bg-glow-purple {
+  background: radial-gradient(
+    circle at bottom right,
+    rgba(168, 85, 247, 0.08),
+    transparent 40%
+  );
+}
+
+.bento-card {
+  @apply bg-white/5 backdrop-blur-md border border-white/10 rounded-2xl p-6 transition-all duration-300;
+}
+.bento-card:hover {
+  @apply shadow-[0_0_30px_rgba(34,211,238,0.1)] border-white/20;
+}
+
+/* Magnetic button smooth transition */
+.magnetic {
+  transition: transform 0.15s cubic-bezier(0.2, 0, 0, 1);
+}
+
+.terminal-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.terminal-scroll::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+.terminal-scroll::-webkit-scrollbar-thumb {
+  background: rgba(34, 211, 238, 0.3);
+  border-radius: 10px;
+}
+.terminal-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(34, 211, 238, 0.5);
+}
