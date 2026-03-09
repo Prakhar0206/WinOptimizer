@@ -84,9 +84,17 @@ export function Home() {
           <HeroTerminal />
         </section>
 
-        <BentoGrid />
-        <SafetyGuarantee />
-        <GuideSection />
+        <section id="features">
+          <BentoGrid />
+        </section>
+        
+        <section id="safety">
+          <SafetyGuarantee />
+        </section>
+        
+        <section id="guide">
+          <GuideSection />
+        </section>
         
       </div>
     </main>

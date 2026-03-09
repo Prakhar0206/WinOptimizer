@@ -33,6 +33,9 @@ export default {
         'blink-caret': {
           'from, to': { borderColor: 'transparent' },
           '50%': { borderColor: '#4ADE80' },
+        },
+        shimmer: {
+          '100%': { transform: 'translateX(200%)' }
         }
       }
     },

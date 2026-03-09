@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Shield, Zap, Laptop, Activity, CheckCircle2, ChevronRight, PlayCircle, Settings, Power } from 'lucide-react';
+import { ChevronRight, Settings, Power } from 'lucide-react';
 import { clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
@@ -197,7 +197,6 @@ export function BentoGrid() {
         <BentoCard 
           delay={0.1} 
           title="1-Click Automation" 
-          icon={PlayCircle} 
           className="md:col-span-2"
           animation={AutomationAnimation}
         >
@@ -213,7 +212,6 @@ export function BentoGrid() {
         <BentoCard 
           delay={0.2} 
           title="Privacy Shield" 
-          icon={Shield} 
           className="md:col-span-1"
           animation={PrivacyAnimation}
         >
@@ -224,7 +222,6 @@ export function BentoGrid() {
         <BentoCard 
           delay={0.3} 
           title="Performance" 
-          icon={Zap} 
           className="md:col-span-1 md:row-span-2 flex flex-col"
           animation={PerformanceAnimation}
         >
@@ -235,15 +232,14 @@ export function BentoGrid() {
         <BentoCard 
           delay={0.4} 
           title="Diagnostics" 
-          icon={Activity} 
           className="md:col-span-2 relative"
           animation={DiagnosticsAnimation}
         >
           <div className="max-w-xs xl:max-w-sm">
             <p className="mb-6">Generates a stunning 10-section HTML System Health dashboard right in your browser. Analyzes your storage space, checks Heavy RAM processes, and pulls raw S.M.A.R.T. health data directly from your drives.</p>
-            <button className="text-cyan-400 text-sm font-semibold flex items-center gap-1 hover:text-cyan-300 transition-colors drop-shadow-[0_0_5px_rgba(34,211,238,0.3)]">
+            <a href="https://github.com/Prakhar0206/WinOptimizer#-system-health-dashboard" target="_blank" rel="noreferrer" className="text-cyan-400 text-sm font-semibold flex items-center gap-1 hover:text-cyan-300 transition-colors drop-shadow-[0_0_5px_rgba(34,211,238,0.3)]">
               View Sample HTML Report <ChevronRight className="w-4 h-4 ml-1" />
-            </button>
+            </a>
           </div>
         </BentoCard>
 
@@ -251,7 +247,6 @@ export function BentoGrid() {
         <BentoCard 
           delay={0.5} 
           title="Deep Cleaning" 
-          icon={Laptop} 
           className="md:col-span-1"
           animation={CleanAnimation}
         >

@@ -1647,7 +1647,8 @@ function Optimize-RAM {
     Write-Log "`n[5/5] Trimming process working sets (freeing idle RAM)..." "STEP"
     try {
         # Load Windows API for EmptyWorkingSet — this is what real RAM optimizers use
-        Add-Type -TypeDefinition @"
+        if (-not ("MemoryOptimizer" -as [type])) {
+            Add-Type -TypeDefinition @"
         using System;
         using System.Runtime.InteropServices;
         public class MemoryOptimizer {
@@ -1655,6 +1656,7 @@ function Optimize-RAM {
             public static extern bool EmptyWorkingSet(IntPtr hProcess);
         }
 "@ -ErrorAction SilentlyContinue
+        }
         
         $trimmedCount = 0
         $trimmedMB = 0
@@ -3462,21 +3464,14 @@ function Update-Software {
                 Write-Host "  $line" -ForegroundColor White
             }
             
-            # Count available updates - try multiple patterns for compatibility
+            # Count available updates - rely on robust line-parsing that works across all languages/locales
+            # (Instead of English-only regex)
             $availableCount = 0
-            $upgradePattern = "(\d+)\s+upgrades?\s+available"
-            $countLine = $upgradeOutput | Where-Object { $_ -match $upgradePattern } | Select-Object -Last 1
-            if ($countLine -match $upgradePattern) {
-                $availableCount = [int]$Matches[1]
+            $count = 0
+            foreach ($uline in $upgradeOutput) {
+                if ($uline.Trim().Length -gt 20 -and $uline -notlike "Name*" -and $uline -notlike "---*") { $count++ }
             }
-            else {
-                # Fallback: count lines that look like package entries
-                $count = 0
-                foreach ($uline in $upgradeOutput) {
-                    if ($uline.Trim().Length -gt 20 -and $uline -notlike "Name*" -and $uline -notlike "---*") { $count++ }
-                }
-                $availableCount = $count
-            }
+            $availableCount = $count
             
             if ($availableCount -gt 0) {
                 Write-Host "`n  $availableCount update(s) available." -ForegroundColor Yellow

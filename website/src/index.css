@@ -3,6 +3,9 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    scroll-behavior: smooth;
+  }
   body {
     @apply bg-background text-foreground bg-fixed;
     font-family: "Geist", "Inter", system-ui, sans-serif;
